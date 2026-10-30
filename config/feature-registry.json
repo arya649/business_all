@@ -22,7 +22,7 @@
     }
   },
   "finance": {
-    "ledger": {}, "sales_invoice": {}, "purchase_invoice": {}, "receipts_payments": {},
+    "ledger": {}, "journal": {}, "sales_invoice": {}, "purchase_invoice": {}, "receipts_payments": {},
     "gst": { "e_invoice": {}, "eway_bill": {}, "gstr1": {}, "gstr2b_match": {}, "gstr3b": {} },
     "tds": {}, "tcs": {}, "bank_reconciliation": { "ai_match": {} },
     "intercompany": {}, "consolidation": {}, "cheque_register": {}, "cashflow_forecast": {},
@@ -60,7 +60,8 @@
   },
   "bunk": {
     "shift": { "nozzle_readings": {}, "cash_denomination": {}, "upi_pos_match": {} },
-    "tanks": { "daily_dip": {}, "density": {}, "atg_integration": {} },
+    "tanks": { "nozzles": {}, "daily_dip": {}, "density": {}, "atg_integration": {} },
+    "prices": {},
     "tanker_receipt": {}, "dsr": {}, "credit_customers": { "limit_check": {} },
     "internal_fuel_issue": {}, "lubes": {}, "variance_detective": {}
   },

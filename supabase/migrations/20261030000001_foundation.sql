@@ -244,8 +244,8 @@ declare
   v_tenant uuid;
   v_roles  uuid[];
 begin
-  -- Only admins may resolve for someone else.
-  if v_user is distinct from auth.uid() and not public.is_tenant_admin() then
+  -- Only admins may resolve for someone else. System code (no signed-in user) resolves for the record's author.
+  if v_user is distinct from auth.uid() and auth.uid() is not null and not public.is_tenant_admin() then
     raise exception 'not allowed to resolve features for another user' using errcode = '42501';
   end if;
 
@@ -407,3 +407,6 @@ create policy assignment_read on public.user_assignment for select
   using (user_id = auth.uid() or public.is_tenant_admin(tenant_id));
 create policy assignment_write on public.user_assignment for all
   using (public.is_tenant_admin(tenant_id)) with check (public.is_tenant_admin(tenant_id));
+
+revoke execute on function public.resolved_features(uuid, uuid, uuid) from public, anon;
+grant execute on function public.resolved_features(uuid, uuid, uuid) to authenticated, service_role;

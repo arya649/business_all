@@ -1,0 +1,153 @@
+import { f, party, item, user, taxLines, taxRollups } from "./_dsl.mjs";
+
+export default {
+  module: "purchase",
+  label: "Purchase & stores",
+  entities: [
+    {
+      key: "purchase.indent", feature: "purchase.indent", label: "Indent", kind: "transaction", scope: "location",
+      numbering: "IN/{LOC}/{FY}/{SEQ:5}", dated: true, workflow: true, mobile: true, icon: "clipboard",
+      description: "Request from a site, plant or bunk. Central buying groups approved indents into POs.",
+      fields: [
+        f.select("priority", "How urgent", ["normal", "urgent", "breakdown"], { default: "normal", quick: true, list: true }),
+        f.date("required_by", "Needed by", { quick: true, list: true }),
+        f.text("purpose", "For", { quick: true, help: "BOQ item, vehicle, plant maintenance..." }),
+        f.ref("vehicle_id", "Vehicle (spares)", "vehicle"),
+        f.select("fulfilment", "Fulfilled by", ["pending", "transfer", "po", "partly", "closed"], { default: "pending", list: true }),
+      ],
+      children: [{
+        name: "lines", label: "Items", fields: [
+          item("item_id", "Item", { required: true }),
+          f.qty("qty", "Qty", { required: true, check: "qty > 0" }),
+          f.text("uom", "Unit"),
+          f.qty("stock_at_location", "Stock here now"),
+          f.photo("photo", "Photo (spares)"),
+          f.text("remarks", "Remarks"),
+        ],
+      }],
+    },
+    {
+      key: "purchase.po", feature: "purchase.po", label: "Purchase order", kind: "transaction", scope: "location",
+      numbering: "PO/{LOC}/{FY}/{SEQ:5}", dated: true, workflow: true, amount: "grand_total", title: "doc_no",
+      description: "Every line shows the last rates paid across all group companies.",
+      fields: [
+        party("party_id", "Vendor", { required: true, list: true }),
+        f.ref("indent_id", "From indent", "purchase.indent"),
+        f.date("delivery_by", "Deliver by", { list: true }),
+        f.longtext("delivery_address", "Deliver to"),
+        f.select("freight", "Freight", ["vendor", "ours", "extra_at_actuals"], { default: "vendor" }),
+        f.int("payment_days", "Payment terms (days)", { default: "30" }),
+        f.text("rate_contract_ref", "Rate contract"),
+        f.money("taxable_value", "Taxable"),
+        f.money("gst_amount", "GST"),
+        f.calc("grand_total", "Total", "money", "taxable_value + gst_amount", { list: true }),
+        f.select("receipt_status", "Received", ["pending", "partly", "complete", "short_closed"], { default: "pending", list: true }),
+        f.longtext("terms", "Terms"),
+      ],
+      rollups: taxRollups,
+      children: [taxLines([f.qty("received_qty", "Received so far", { default: "0" }), f.money("last_rate", "Last rate paid", { sensitive: "rates" })])],
+    },
+    {
+      key: "purchase.grn", feature: "purchase.grn", label: "Goods receipt", kind: "transaction", scope: "location",
+      numbering: "GR/{LOC}/{FY}/{SEQ:5}", dated: true, mobile: true, icon: "package-check", title: "doc_no",
+      description: "What actually arrived. Weighbridge net fills the qty for bulk materials. Stock goes up here.",
+      fields: [
+        party("party_id", "Vendor", { required: true, quick: true, list: true }),
+        f.ref("po_id", "PO", "purchase.po", { quick: true, list: true }),
+        f.text("vendor_challan_no", "Vendor challan / invoice no", { quick: true }),
+        f.text("vehicle_no", "Vehicle no"),
+        f.ref("weighbridge_ticket_id", "Weighbridge ticket", "weighbridge.ticket"),
+        f.select("qc_status", "Quality check", ["not_required", "pending", "accepted", "partly_rejected", "rejected"], { default: "not_required", list: true }),
+        f.photos("photos", "Photos (material, challan)", { quick: true }),
+        f.money("value", "Value", { sensitive: "rates" }),
+      ],
+      rollups: [{ field: "value", child: "lines", expr: "coalesce(sum(accepted_qty * coalesce(rate, 0)), 0)" }],
+      children: [{
+        name: "lines", label: "Items", fields: [
+          item("item_id", "Item", { required: true }),
+          f.qty("challan_qty", "Vendor's qty"),
+          f.qty("received_qty", "Received", { required: true }),
+          f.qty("rejected_qty", "Rejected", { default: "0" }),
+          f.calc("accepted_qty", "Accepted", "qty", "received_qty - coalesce(rejected_qty, 0)"),
+          f.calc("short_qty", "Short", "qty", "case when challan_qty is null then 0 else challan_qty - received_qty end"),
+          f.money("rate", "PO rate", { sensitive: "rates" }),
+          f.text("batch_no", "Batch"),
+          f.text("reject_reason", "Reject reason"),
+        ],
+      }],
+      stock: [{ child: "lines", item: "item_id", qty: "accepted_qty", dir: "in", rate: "rate" }],
+    },
+    {
+      key: "purchase.transfer", feature: "purchase.stock.transfers", label: "Stock transfer", kind: "transaction", scope: "location",
+      numbering: "ST/{LOC}/{FY}/{SEQ:5}", dated: true, workflow: true, mobile: true, icon: "arrow-left-right",
+      description: "Move stock between locations. Between group companies it becomes a sale and a purchase automatically.",
+      fields: [
+        f.ref("to_location_id", "To location", "location", { required: true, quick: true, list: true }),
+        f.ref("to_company_id", "To company (if another group company)", "company"),
+        f.text("vehicle_no", "Vehicle no", { quick: true }),
+        f.text("eway_bill_no", "E-way bill"),
+        f.select("transit_status", "Status", ["in_transit", "received", "partly_received"], { default: "in_transit", list: true }),
+        f.datetime("received_at", "Received at"),
+        user("received_by", "Received by"),
+      ],
+      children: [{
+        name: "lines", label: "Items", fields: [
+          item("item_id", "Item", { required: true }),
+          f.qty("qty", "Sent", { required: true, check: "qty > 0" }),
+          f.qty("received_qty", "Received"),
+          f.money("rate", "Transfer rate", { sensitive: "rates" }),
+        ],
+      }],
+      stock: [
+        { child: "lines", item: "item_id", qty: "qty", dir: "out", rate: "rate", when: "approved" },
+        { child: "lines", item: "item_id", qty: "qty", dir: "in", rate: "rate", when: "approved", location: "to_location_id" },
+      ],
+    },
+    {
+      key: "purchase.issue", feature: "purchase.stock", label: "Material issue", kind: "transaction", scope: "location",
+      numbering: "MI/{LOC}/{FY}/{SEQ:5}", dated: true, mobile: true, icon: "package-minus",
+      description: "Store issues material to a BOQ item, vehicle or machine.",
+      fields: [
+        f.select("issued_for", "Issued for", ["boq_item", "vehicle", "plant_maintenance", "production", "general"], { required: true, quick: true }),
+        f.ref("boq_item_id", "BOQ item", "infra.boq_item"),
+        f.ref("vehicle_id", "Vehicle", "vehicle"),
+        user("issued_to", "Issued to", { quick: true }),
+      ],
+      children: [{
+        name: "lines", label: "Items", fields: [
+          item("item_id", "Item", { required: true }),
+          f.qty("qty", "Qty", { required: true, check: "qty > 0" }),
+        ],
+      }],
+      stock: [{ child: "lines", item: "item_id", qty: "qty", dir: "out" }],
+    },
+    {
+      key: "purchase.stock_count", feature: "purchase.stock.blind_count", label: "Stock count", kind: "transaction", scope: "location",
+      numbering: "SC/{LOC}/{FY}/{SEQ:4}", dated: true, workflow: true, mobile: true, icon: "list-checks",
+      description: "Blind count: the counter does not see system stock. Differences post on approval.",
+      fields: [f.longtext("remarks", "Remarks")],
+      children: [{
+        name: "lines", label: "Counted", fields: [
+          item("item_id", "Item", { required: true }),
+          f.qty("counted_qty", "Counted", { required: true }),
+          f.qty("system_qty", "System qty"),
+          f.calc("difference", "Difference", "qty", "counted_qty - coalesce(system_qty, 0)"),
+        ],
+      }],
+      stock: [{ child: "lines", item: "item_id", qty: "difference", dir: "adjust", when: "approved" }],
+    },
+    {
+      key: "purchase.rate_contract", feature: "purchase.rate_contracts", label: "Rate contract", kind: "master", scope: "company",
+      dated: true, title: "doc_no", numbering: "RC/{FY}/{SEQ:4}",
+      fields: [
+        party("party_id", "Vendor", { required: true, list: true }),
+        item("item_id", "Item", { required: true, list: true }),
+        f.money("rate", "Rate", { required: true, list: true, sensitive: "rates" }),
+        f.text("uom", "Unit"),
+        f.date("valid_from", "Valid from", { required: true }),
+        f.date("valid_to", "Valid to", { required: true, list: true }),
+        f.qty("committed_qty", "Committed qty"),
+      ],
+    },
+  ],
+};

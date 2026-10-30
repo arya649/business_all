@@ -1,0 +1,8238 @@
+[
+ {
+  "key": "finance.ledger",
+  "feature": "finance.ledger",
+  "label": "Ledger",
+  "kind": "master",
+  "scope": "company",
+  "title": "name",
+  "description": "Chart of accounts. Codes (SALES_RMC, GST_OUTPUT...) are what posting rules refer to.",
+  "fields": [
+   {
+    "name": "name",
+    "label": "Ledger name",
+    "type": "text",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "code",
+    "label": "Code",
+    "type": "text",
+    "list": true,
+    "help": "Used by posting rules, e.g. SALES_RMC"
+   },
+   {
+    "name": "ledger_group",
+    "label": "Group",
+    "type": "select",
+    "options": [
+     "capital",
+     "reserves",
+     "secured_loans",
+     "unsecured_loans",
+     "sundry_creditors",
+     "duties_taxes",
+     "provisions",
+     "current_liabilities",
+     "fixed_assets",
+     "investments",
+     "sundry_debtors",
+     "cash",
+     "bank",
+     "loans_advances_asset",
+     "stock",
+     "current_assets",
+     "sales",
+     "direct_income",
+     "indirect_income",
+     "purchases",
+     "direct_expenses",
+     "indirect_expenses"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "nature",
+    "label": "Nature",
+    "type": "select",
+    "options": [
+     "asset",
+     "liability",
+     "income",
+     "expense"
+    ],
+    "required": true
+   },
+   {
+    "name": "is_bank",
+    "label": "Bank account",
+    "type": "bool"
+   },
+   {
+    "name": "bank_name",
+    "label": "Bank",
+    "type": "text",
+    "section": "Bank"
+   },
+   {
+    "name": "account_no",
+    "label": "Account no",
+    "type": "text",
+    "section": "Bank"
+   },
+   {
+    "name": "ifsc",
+    "label": "IFSC",
+    "type": "text",
+    "section": "Bank",
+    "check": "ifsc is null or ifsc ~ '^[A-Z]{4}0[A-Z0-9]{6}$'"
+   },
+   {
+    "name": "opening_balance",
+    "label": "Opening balance (Dr +, Cr −)",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "is_active",
+    "label": "Active",
+    "type": "bool",
+    "default": "true"
+   }
+  ],
+  "unique": [
+   [
+    "company_id",
+    "code"
+   ]
+  ],
+  "module": "finance",
+  "table": "finance_ledger",
+  "plural": "Ledgers",
+  "children": []
+ },
+ {
+  "key": "finance.journal",
+  "feature": "finance.journal",
+  "label": "Journal",
+  "kind": "transaction",
+  "scope": "company",
+  "numbering": "JV/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "amount": "total_debit",
+  "title": "narration",
+  "description": "Double-entry voucher. Posted automatically from module documents, or entered by hand.",
+  "fields": [
+   {
+    "name": "voucher_type",
+    "label": "Voucher type",
+    "type": "select",
+    "options": [
+     "journal",
+     "sales",
+     "purchase",
+     "receipt",
+     "payment",
+     "contra",
+     "debit_note",
+     "credit_note",
+     "stock",
+     "payroll"
+    ],
+    "required": true,
+    "list": true,
+    "default": "journal"
+   },
+   {
+    "name": "narration",
+    "label": "Narration",
+    "type": "longtext",
+    "list": true
+   },
+   {
+    "name": "source_entity",
+    "label": "Source document type",
+    "type": "text"
+   },
+   {
+    "name": "source_id",
+    "label": "Source document id",
+    "type": "text"
+   },
+   {
+    "name": "source_doc_no",
+    "label": "Source document no",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "is_intercompany",
+    "label": "Inter-company",
+    "type": "bool"
+   },
+   {
+    "name": "counterparty_company_id",
+    "label": "Other group company",
+    "type": "ref",
+    "ref": "company"
+   },
+   {
+    "name": "ic_reference",
+    "label": "Inter-company reference",
+    "type": "text"
+   },
+   {
+    "name": "is_reversal",
+    "label": "Reversal",
+    "type": "bool"
+   },
+   {
+    "name": "total_debit",
+    "label": "Total debit",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "total_credit",
+    "label": "Total credit",
+    "type": "money"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "total_debit",
+    "child": "lines",
+    "expr": "coalesce(sum(debit), 0)"
+   },
+   {
+    "field": "total_credit",
+    "child": "lines",
+    "expr": "coalesce(sum(credit), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Lines",
+    "fields": [
+     {
+      "name": "ledger_id",
+      "label": "Ledger",
+      "type": "ref",
+      "ref": "finance.ledger",
+      "required": true
+     },
+     {
+      "name": "party_id",
+      "label": "Party",
+      "type": "ref",
+      "ref": "party"
+     },
+     {
+      "name": "debit",
+      "label": "Debit",
+      "type": "money",
+      "default": "0",
+      "check": "debit >= 0"
+     },
+     {
+      "name": "credit",
+      "label": "Credit",
+      "type": "money",
+      "default": "0",
+      "check": "credit >= 0"
+     },
+     {
+      "name": "cost_location_id",
+      "label": "Cost centre (location)",
+      "type": "ref",
+      "ref": "location"
+     },
+     {
+      "name": "bill_ref",
+      "label": "Bill reference",
+      "type": "text"
+     },
+     {
+      "name": "bill_ref_type",
+      "label": "Bill-wise",
+      "type": "select",
+      "options": [
+       "new_ref",
+       "against_ref",
+       "on_account",
+       "advance"
+      ]
+     },
+     {
+      "name": "due_date",
+      "label": "Due date",
+      "type": "date"
+     },
+     {
+      "name": "line_narration",
+      "label": "Line narration",
+      "type": "text"
+     }
+    ],
+    "key": "finance.journal.lines",
+    "table": "finance_journal_lines"
+   }
+  ],
+  "module": "finance",
+  "table": "finance_journal",
+  "plural": "Journals"
+ },
+ {
+  "key": "finance.sales_invoice",
+  "feature": "finance.sales_invoice",
+  "label": "Sales invoice",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "amount": "grand_total",
+  "mobile": false,
+  "description": "GST invoice. Module invoices (RMC, bitumen, bricks, bunk credit) are created here by their billing runs.",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Customer",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true,
+    "quick": true
+   },
+   {
+    "name": "billing_gstin",
+    "label": "Customer GSTIN",
+    "type": "text",
+    "check": "billing_gstin is null or billing_gstin ~ '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'"
+   },
+   {
+    "name": "place_of_supply",
+    "label": "Place of supply (state code)",
+    "type": "text",
+    "required": true,
+    "check": "place_of_supply ~ '^[0-9]{2}$'"
+   },
+   {
+    "name": "shipping_address",
+    "label": "Ship to",
+    "type": "longtext"
+   },
+   {
+    "name": "reverse_charge",
+    "label": "Reverse charge",
+    "type": "bool"
+   },
+   {
+    "name": "due_date",
+    "label": "Due date",
+    "type": "date"
+   },
+   {
+    "name": "source_entity",
+    "label": "Billed from",
+    "type": "text"
+   },
+   {
+    "name": "source_ids",
+    "label": "Challans / dispatches billed",
+    "type": "json"
+   },
+   {
+    "name": "taxable_value",
+    "label": "Taxable value",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "gst_amount",
+    "label": "GST",
+    "type": "money"
+   },
+   {
+    "name": "tcs_amount",
+    "label": "TCS",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "round_off",
+    "label": "Round off",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "grand_total",
+    "label": "Invoice total",
+    "type": "money",
+    "expr": "taxable_value + gst_amount + coalesce(tcs_amount, 0) + coalesce(round_off, 0)",
+    "list": true
+   },
+   {
+    "name": "is_interstate",
+    "label": "Inter-state (IGST)",
+    "type": "bool"
+   },
+   {
+    "name": "irn",
+    "label": "IRN",
+    "type": "text",
+    "section": "e-Invoice"
+   },
+   {
+    "name": "ack_no",
+    "label": "Ack no",
+    "type": "text",
+    "section": "e-Invoice"
+   },
+   {
+    "name": "ack_date",
+    "label": "Ack date",
+    "type": "datetime",
+    "section": "e-Invoice"
+   },
+   {
+    "name": "signed_qr",
+    "label": "Signed QR",
+    "type": "longtext",
+    "section": "e-Invoice"
+   },
+   {
+    "name": "eway_bill_no",
+    "label": "E-way bill no",
+    "type": "text",
+    "section": "E-way bill"
+   },
+   {
+    "name": "eway_valid_upto",
+    "label": "E-way bill valid till",
+    "type": "datetime",
+    "section": "E-way bill"
+   },
+   {
+    "name": "vehicle_no",
+    "label": "Vehicle no",
+    "type": "text",
+    "section": "E-way bill"
+   },
+   {
+    "name": "distance_km",
+    "label": "Distance (km)",
+    "type": "int",
+    "section": "E-way bill"
+   },
+   {
+    "name": "terms",
+    "label": "Terms",
+    "type": "longtext"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "taxable_value",
+    "child": "lines",
+    "expr": "coalesce(sum(taxable_value), 0)"
+   },
+   {
+    "field": "gst_amount",
+    "child": "lines",
+    "expr": "coalesce(sum(gst_amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "description",
+      "label": "Description",
+      "type": "text"
+     },
+     {
+      "name": "hsn_sac",
+      "label": "HSN/SAC",
+      "type": "text"
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true,
+      "check": "qty > 0"
+     },
+     {
+      "name": "uom",
+      "label": "Unit",
+      "type": "text"
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money",
+      "required": true,
+      "sensitive": "rates"
+     },
+     {
+      "name": "discount_pct",
+      "label": "Discount %",
+      "type": "percent",
+      "default": "0"
+     },
+     {
+      "name": "gst_rate",
+      "label": "GST %",
+      "type": "percent",
+      "default": "18"
+     },
+     {
+      "name": "taxable_value",
+      "label": "Taxable",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100), 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "gst_amount",
+      "label": "GST",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * coalesce(gst_rate, 0) / 100, 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "line_total",
+      "label": "Total",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * (1 + coalesce(gst_rate, 0) / 100), 2)",
+      "sensitive": "rates"
+     }
+    ],
+    "key": "finance.sales_invoice.lines",
+    "table": "finance_sales_invoice_lines"
+   }
+  ],
+  "posting": {
+   "voucher": "sales",
+   "party": "party_id",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "@party",
+     "amount": "grand_total"
+    },
+    {
+     "side": "Cr",
+     "ledger": "SALES",
+     "amount": "taxable_value"
+    },
+    {
+     "side": "Cr",
+     "ledger": "GST_OUTPUT",
+     "amount": "gst_amount"
+    },
+    {
+     "side": "Cr",
+     "ledger": "TCS_PAYABLE",
+     "amount": "tcs_amount"
+    },
+    {
+     "side": "Cr",
+     "ledger": "ROUND_OFF",
+     "amount": "round_off"
+    }
+   ]
+  },
+  "module": "finance",
+  "table": "finance_sales_invoice",
+  "plural": "Sales invoices"
+ },
+ {
+  "key": "finance.purchase_invoice",
+  "feature": "finance.purchase_invoice",
+  "label": "Purchase invoice",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "PI/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "amount": "grand_total",
+  "description": "Vendor bill, matched against PO and GRN (3-way match) before approval.",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Vendor",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true,
+    "quick": true
+   },
+   {
+    "name": "vendor_invoice_no",
+    "label": "Vendor invoice no",
+    "type": "text",
+    "required": true,
+    "list": true,
+    "quick": true
+   },
+   {
+    "name": "vendor_invoice_date",
+    "label": "Vendor invoice date",
+    "type": "date",
+    "required": true
+   },
+   {
+    "name": "place_of_supply",
+    "label": "Place of supply (state code)",
+    "type": "text",
+    "check": "place_of_supply is null or place_of_supply ~ '^[0-9]{2}$'"
+   },
+   {
+    "name": "po_id",
+    "label": "Purchase order",
+    "type": "ref",
+    "ref": "purchase.po"
+   },
+   {
+    "name": "grn_id",
+    "label": "Goods receipt",
+    "type": "ref",
+    "ref": "purchase.grn"
+   },
+   {
+    "name": "match_status",
+    "label": "3-way match",
+    "type": "select",
+    "options": [
+     "not_checked",
+     "matched",
+     "rate_mismatch",
+     "qty_mismatch",
+     "no_grn"
+    ],
+    "default": "not_checked",
+    "list": true
+   },
+   {
+    "name": "match_notes",
+    "label": "Match notes",
+    "type": "longtext"
+   },
+   {
+    "name": "itc_eligible",
+    "label": "Input tax credit eligible",
+    "type": "bool",
+    "default": "true"
+   },
+   {
+    "name": "gstr2b_status",
+    "label": "GSTR-2B",
+    "type": "select",
+    "options": [
+     "not_checked",
+     "matched",
+     "partial",
+     "missing"
+    ],
+    "default": "not_checked"
+   },
+   {
+    "name": "tds_section",
+    "label": "TDS section",
+    "type": "text"
+   },
+   {
+    "name": "tds_amount",
+    "label": "TDS",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "taxable_value",
+    "label": "Taxable value",
+    "type": "money"
+   },
+   {
+    "name": "gst_amount",
+    "label": "GST",
+    "type": "money"
+   },
+   {
+    "name": "round_off",
+    "label": "Round off",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "grand_total",
+    "label": "Invoice total",
+    "type": "money",
+    "expr": "taxable_value + gst_amount + coalesce(round_off, 0)",
+    "list": true
+   },
+   {
+    "name": "due_date",
+    "label": "Due date",
+    "type": "date"
+   },
+   {
+    "name": "bill_photo",
+    "label": "Bill photo",
+    "type": "photo",
+    "quick": true
+   }
+  ],
+  "unique": [
+   [
+    "company_id",
+    "party_id",
+    "vendor_invoice_no"
+   ]
+  ],
+  "rollups": [
+   {
+    "field": "taxable_value",
+    "child": "lines",
+    "expr": "coalesce(sum(taxable_value), 0)"
+   },
+   {
+    "field": "gst_amount",
+    "child": "lines",
+    "expr": "coalesce(sum(gst_amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "description",
+      "label": "Description",
+      "type": "text"
+     },
+     {
+      "name": "hsn_sac",
+      "label": "HSN/SAC",
+      "type": "text"
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true,
+      "check": "qty > 0"
+     },
+     {
+      "name": "uom",
+      "label": "Unit",
+      "type": "text"
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money",
+      "required": true,
+      "sensitive": "rates"
+     },
+     {
+      "name": "discount_pct",
+      "label": "Discount %",
+      "type": "percent",
+      "default": "0"
+     },
+     {
+      "name": "gst_rate",
+      "label": "GST %",
+      "type": "percent",
+      "default": "18"
+     },
+     {
+      "name": "taxable_value",
+      "label": "Taxable",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100), 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "gst_amount",
+      "label": "GST",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * coalesce(gst_rate, 0) / 100, 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "line_total",
+      "label": "Total",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * (1 + coalesce(gst_rate, 0) / 100), 2)",
+      "sensitive": "rates"
+     }
+    ],
+    "key": "finance.purchase_invoice.lines",
+    "table": "finance_purchase_invoice_lines"
+   }
+  ],
+  "posting": {
+   "voucher": "purchase",
+   "party": "party_id",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "PURCHASES",
+     "amount": "taxable_value"
+    },
+    {
+     "side": "Dr",
+     "ledger": "GST_INPUT",
+     "amount": "gst_amount"
+    },
+    {
+     "side": "Dr",
+     "ledger": "ROUND_OFF",
+     "amount": "round_off"
+    },
+    {
+     "side": "Cr",
+     "ledger": "@party",
+     "amount": "grand_total"
+    },
+    {
+     "side": "Dr",
+     "ledger": "@party",
+     "amount": "tds_amount"
+    },
+    {
+     "side": "Cr",
+     "ledger": "TDS_PAYABLE",
+     "amount": "tds_amount"
+    }
+   ]
+  },
+  "module": "finance",
+  "table": "finance_purchase_invoice",
+  "plural": "Purchase invoices"
+ },
+ {
+  "key": "finance.receipt",
+  "feature": "finance.receipts_payments",
+  "label": "Receipt",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "RC/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": false,
+  "amount": "amount",
+  "mobile": true,
+  "icon": "receipt",
+  "description": "Money received from a customer: cash, UPI, cheque or bank transfer.",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Received from",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true,
+    "quick": true
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "amount > 0"
+   },
+   {
+    "name": "mode",
+    "label": "Mode",
+    "type": "select",
+    "options": [
+     "cash",
+     "upi",
+     "cheque",
+     "neft_rtgs",
+     "card",
+     "adjustment"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "bank_ledger_id",
+    "label": "Deposited to",
+    "type": "ref",
+    "ref": "finance.ledger"
+   },
+   {
+    "name": "reference_no",
+    "label": "UTR / cheque no",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "cheque_date",
+    "label": "Cheque date",
+    "type": "date"
+   },
+   {
+    "name": "cheque_status",
+    "label": "Cheque status",
+    "type": "select",
+    "options": [
+     "pending",
+     "deposited",
+     "cleared",
+     "bounced"
+    ]
+   },
+   {
+    "name": "against_bills",
+    "label": "Against bills",
+    "type": "text"
+   },
+   {
+    "name": "proof_photo",
+    "label": "Proof photo",
+    "type": "photo",
+    "quick": true
+   },
+   {
+    "name": "remarks",
+    "label": "Remarks",
+    "type": "longtext"
+   }
+  ],
+  "posting": {
+   "voucher": "receipt",
+   "party": "party_id",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "$bank_ledger_id|CASH",
+     "amount": "amount"
+    },
+    {
+     "side": "Cr",
+     "ledger": "@party",
+     "amount": "amount"
+    }
+   ]
+  },
+  "module": "finance",
+  "table": "finance_receipt",
+  "plural": "Receipts",
+  "children": []
+ },
+ {
+  "key": "finance.payment",
+  "feature": "finance.receipts_payments",
+  "label": "Payment",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "PY/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "amount": "amount",
+  "description": "Money paid to a vendor, sub-contractor or employee. Approval rules decide who signs off.",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Paid to",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "required": true,
+    "list": true,
+    "check": "amount > 0"
+   },
+   {
+    "name": "mode",
+    "label": "Mode",
+    "type": "select",
+    "options": [
+     "cash",
+     "upi",
+     "cheque",
+     "neft_rtgs",
+     "adjustment"
+    ],
+    "required": true
+   },
+   {
+    "name": "bank_ledger_id",
+    "label": "Paid from",
+    "type": "ref",
+    "ref": "finance.ledger"
+   },
+   {
+    "name": "reference_no",
+    "label": "UTR / cheque no",
+    "type": "text"
+   },
+   {
+    "name": "tds_amount",
+    "label": "TDS deducted",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "against_bills",
+    "label": "Against bills",
+    "type": "text"
+   },
+   {
+    "name": "remarks",
+    "label": "Remarks",
+    "type": "longtext"
+   }
+  ],
+  "posting": {
+   "voucher": "payment",
+   "party": "party_id",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "@party",
+     "amount": "amount"
+    },
+    {
+     "side": "Cr",
+     "ledger": "$bank_ledger_id|CASH",
+     "amount": "amount"
+    }
+   ]
+  },
+  "module": "finance",
+  "table": "finance_payment",
+  "plural": "Payments",
+  "children": []
+ },
+ {
+  "key": "finance.expense",
+  "feature": "finance.receipts_payments",
+  "label": "Expense",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "EX/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "amount": "amount",
+  "mobile": true,
+  "icon": "wallet",
+  "description": "Site / plant petty expense with a bill photo. Approved expenses post to the ledger.",
+  "fields": [
+   {
+    "name": "category",
+    "label": "For",
+    "type": "select",
+    "options": [
+     "food",
+     "travel",
+     "repairs",
+     "stationery",
+     "electricity",
+     "water",
+     "rent",
+     "labour",
+     "loading_unloading",
+     "freight",
+     "fuel_outside",
+     "phone",
+     "office",
+     "other"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "amount > 0"
+   },
+   {
+    "name": "paid_by",
+    "label": "Paid by",
+    "type": "select",
+    "options": [
+     "petty_cash",
+     "self_reimburse",
+     "company_card",
+     "upi"
+    ],
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "party_id",
+    "label": "Paid to (if known)",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "bill_photo",
+    "label": "Bill photo",
+    "type": "photo",
+    "quick": true
+   },
+   {
+    "name": "description",
+    "label": "What was it for?",
+    "type": "longtext",
+    "quick": true
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle (if any)",
+    "type": "ref",
+    "ref": "vehicle"
+   }
+  ],
+  "posting": {
+   "voucher": "payment",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "EXPENSES",
+     "amount": "amount"
+    },
+    {
+     "side": "Cr",
+     "ledger": "PETTY_CASH",
+     "amount": "amount"
+    }
+   ]
+  },
+  "module": "finance",
+  "table": "finance_expense",
+  "plural": "Expenses",
+  "children": []
+ },
+ {
+  "key": "finance.bank_txn",
+  "feature": "finance.bank_reconciliation",
+  "label": "Bank statement line",
+  "kind": "log",
+  "scope": "company",
+  "dated": true,
+  "title": "narration",
+  "description": "Imported bank statement lines, matched to receipts and payments.",
+  "fields": [
+   {
+    "name": "bank_ledger_id",
+    "label": "Bank",
+    "type": "ref",
+    "ref": "finance.ledger",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "narration",
+    "label": "Narration",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "reference",
+    "label": "Ref / UTR",
+    "type": "text"
+   },
+   {
+    "name": "debit",
+    "label": "Withdrawal",
+    "type": "money",
+    "default": "0",
+    "list": true
+   },
+   {
+    "name": "credit",
+    "label": "Deposit",
+    "type": "money",
+    "default": "0",
+    "list": true
+   },
+   {
+    "name": "balance",
+    "label": "Balance",
+    "type": "money"
+   },
+   {
+    "name": "match_status",
+    "label": "Match",
+    "type": "select",
+    "options": [
+     "unmatched",
+     "matched",
+     "suggested",
+     "ignored"
+    ],
+    "default": "unmatched",
+    "list": true
+   },
+   {
+    "name": "matched_entity",
+    "label": "Matched to",
+    "type": "text"
+   },
+   {
+    "name": "matched_id",
+    "label": "Matched record",
+    "type": "text"
+   },
+   {
+    "name": "match_confidence",
+    "label": "Match confidence",
+    "type": "percent"
+   }
+  ],
+  "module": "finance",
+  "table": "finance_bank_txn",
+  "plural": "Bank statement lines",
+  "children": []
+ },
+ {
+  "key": "finance.cheque",
+  "feature": "finance.cheque_register",
+  "label": "Cheque / PDC",
+  "kind": "transaction",
+  "scope": "company",
+  "dated": true,
+  "amount": "amount",
+  "title": "cheque_no",
+  "fields": [
+   {
+    "name": "direction",
+    "label": "Type",
+    "type": "select",
+    "options": [
+     "received",
+     "issued"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "party_id",
+    "label": "Party",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "cheque_no",
+    "label": "Cheque no",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "bank_name",
+    "label": "Bank",
+    "type": "text"
+   },
+   {
+    "name": "cheque_date",
+    "label": "Cheque date",
+    "type": "date",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "cheque_status",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "in_hand",
+     "deposited",
+     "cleared",
+     "bounced",
+     "returned",
+     "cancelled"
+    ],
+    "default": "in_hand",
+    "list": true
+   },
+   {
+    "name": "bounce_reason",
+    "label": "Bounce reason",
+    "type": "text"
+   },
+   {
+    "name": "photo",
+    "label": "Cheque photo",
+    "type": "photo"
+   }
+  ],
+  "module": "finance",
+  "table": "finance_cheque",
+  "plural": "Cheque / PDCs",
+  "children": []
+ },
+ {
+  "key": "crm.lead",
+  "feature": "crm.lead_capture",
+  "label": "Lead",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "LD/{FY}/{SEQ:5}",
+  "dated": true,
+  "title": "contact_name",
+  "amount": "expected_value",
+  "mobile": true,
+  "icon": "target",
+  "description": "Every enquiry, from any source, in one list. Assigned by area and business line.",
+  "fields": [
+   {
+    "name": "contact_name",
+    "label": "Name",
+    "type": "text",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "mobile",
+    "label": "Mobile",
+    "type": "phone",
+    "check": "mobile is null or mobile ~ '^\\+?[0-9]{10,15}$'",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "company_name",
+    "label": "Company / builder",
+    "type": "text"
+   },
+   {
+    "name": "business_line",
+    "label": "Wants",
+    "type": "select",
+    "options": [
+     "rmc",
+     "bitumen_hotmix",
+     "bricks",
+     "infra_contract",
+     "bunk_credit",
+     "weighbridge",
+     "other"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "source",
+    "label": "Came from",
+    "type": "select",
+    "options": [
+     "walk_in",
+     "phone",
+     "missed_call",
+     "whatsapp",
+     "website",
+     "indiamart",
+     "justdial",
+     "referral",
+     "site_visit",
+     "tender_portal",
+     "existing_customer"
+    ],
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "stage",
+    "label": "Stage",
+    "type": "select",
+    "options": [
+     "new",
+     "contacted",
+     "site_visit",
+     "quote_sent",
+     "trial",
+     "negotiation",
+     "won",
+     "lost"
+    ],
+    "default": "new",
+    "list": true
+   },
+   {
+    "name": "requirement",
+    "label": "Requirement",
+    "type": "longtext",
+    "quick": true,
+    "help": "e.g. 30 m³ M25 for slab on Friday"
+   },
+   {
+    "name": "quantity",
+    "label": "Quantity",
+    "type": "qty"
+   },
+   {
+    "name": "quantity_unit",
+    "label": "Unit (m³, MT, nos)",
+    "type": "text"
+   },
+   {
+    "name": "required_by",
+    "label": "Needed by",
+    "type": "date"
+   },
+   {
+    "name": "site_location",
+    "label": "Site location (map pin)",
+    "type": "geo"
+   },
+   {
+    "name": "site_address",
+    "label": "Site address",
+    "type": "text"
+   },
+   {
+    "name": "expected_value",
+    "label": "Expected value",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "owner_id",
+    "label": "Salesperson",
+    "type": "ref",
+    "ref": "app_user",
+    "list": true
+   },
+   {
+    "name": "next_follow_up_at",
+    "label": "Next follow-up",
+    "type": "datetime",
+    "list": true
+   },
+   {
+    "name": "lost_reason",
+    "label": "Lost because",
+    "type": "select",
+    "options": [
+     "price",
+     "distance",
+     "competitor_relationship",
+     "quality_concern",
+     "credit_terms",
+     "project_delayed",
+     "no_response",
+     "other"
+    ]
+   },
+   {
+    "name": "party_id",
+    "label": "Converted to customer",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "notes",
+    "label": "Notes",
+    "type": "longtext"
+   }
+  ],
+  "module": "crm",
+  "table": "crm_lead",
+  "plural": "Leads",
+  "children": []
+ },
+ {
+  "key": "crm.follow_up",
+  "feature": "crm.pipelines",
+  "label": "Follow-up",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "phone",
+  "title": "outcome",
+  "fields": [
+   {
+    "name": "lead_id",
+    "label": "Lead",
+    "type": "ref",
+    "ref": "crm.lead",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "channel",
+    "label": "How",
+    "type": "select",
+    "options": [
+     "call",
+     "whatsapp",
+     "visit",
+     "email",
+     "meeting"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "outcome",
+    "label": "Result",
+    "type": "select",
+    "options": [
+     "interested",
+     "call_back",
+     "quote_requested",
+     "not_interested",
+     "no_answer",
+     "order_given"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "summary",
+    "label": "What was said",
+    "type": "longtext",
+    "quick": true
+   },
+   {
+    "name": "voice_note",
+    "label": "Voice note",
+    "type": "file"
+   },
+   {
+    "name": "next_follow_up_at",
+    "label": "Next follow-up",
+    "type": "datetime",
+    "quick": true
+   }
+  ],
+  "module": "crm",
+  "table": "crm_follow_up",
+  "plural": "Follow-ups",
+  "children": []
+ },
+ {
+  "key": "crm.quotation",
+  "feature": "crm.quotation",
+  "label": "Quotation",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "QT/{LOC}/{FY}/{SEQ:4}",
+  "dated": true,
+  "workflow": true,
+  "amount": "grand_total",
+  "description": "Rates from the price list; discounts beyond the limit go for approval.",
+  "fields": [
+   {
+    "name": "lead_id",
+    "label": "Lead",
+    "type": "ref",
+    "ref": "crm.lead"
+   },
+   {
+    "name": "party_id",
+    "label": "Customer",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "customer_name",
+    "label": "Customer name (new)",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "valid_until",
+    "label": "Valid until",
+    "type": "date",
+    "required": true
+   },
+   {
+    "name": "site_distance_km",
+    "label": "Site distance (km)",
+    "type": "int"
+   },
+   {
+    "name": "transport_charge",
+    "label": "Transport charge",
+    "type": "money",
+    "default": "0",
+    "sensitive": "rates"
+   },
+   {
+    "name": "pump_charge",
+    "label": "Pump charge",
+    "type": "money",
+    "default": "0",
+    "sensitive": "rates"
+   },
+   {
+    "name": "max_discount_pct",
+    "label": "Highest line discount %",
+    "type": "percent"
+   },
+   {
+    "name": "version",
+    "label": "Version",
+    "type": "int",
+    "default": "1"
+   },
+   {
+    "name": "result",
+    "label": "Result",
+    "type": "select",
+    "options": [
+     "open",
+     "accepted",
+     "rejected",
+     "expired",
+     "revised"
+    ],
+    "default": "open",
+    "list": true
+   },
+   {
+    "name": "taxable_value",
+    "label": "Taxable",
+    "type": "money"
+   },
+   {
+    "name": "gst_amount",
+    "label": "GST",
+    "type": "money"
+   },
+   {
+    "name": "grand_total",
+    "label": "Total",
+    "type": "money",
+    "expr": "taxable_value + gst_amount + coalesce(transport_charge, 0) + coalesce(pump_charge, 0)",
+    "list": true
+   },
+   {
+    "name": "terms",
+    "label": "Terms",
+    "type": "longtext"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "taxable_value",
+    "child": "lines",
+    "expr": "coalesce(sum(taxable_value), 0)"
+   },
+   {
+    "field": "gst_amount",
+    "child": "lines",
+    "expr": "coalesce(sum(gst_amount), 0)"
+   },
+   {
+    "field": "max_discount_pct",
+    "child": "lines",
+    "expr": "max(discount_pct)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "description",
+      "label": "Description",
+      "type": "text"
+     },
+     {
+      "name": "hsn_sac",
+      "label": "HSN/SAC",
+      "type": "text"
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true,
+      "check": "qty > 0"
+     },
+     {
+      "name": "uom",
+      "label": "Unit",
+      "type": "text"
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money",
+      "required": true,
+      "sensitive": "rates"
+     },
+     {
+      "name": "discount_pct",
+      "label": "Discount %",
+      "type": "percent",
+      "default": "0"
+     },
+     {
+      "name": "gst_rate",
+      "label": "GST %",
+      "type": "percent",
+      "default": "18"
+     },
+     {
+      "name": "taxable_value",
+      "label": "Taxable",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100), 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "gst_amount",
+      "label": "GST",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * coalesce(gst_rate, 0) / 100, 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "line_total",
+      "label": "Total",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * (1 + coalesce(gst_rate, 0) / 100), 2)",
+      "sensitive": "rates"
+     }
+    ],
+    "key": "crm.quotation.lines",
+    "table": "crm_quotation_lines"
+   }
+  ],
+  "module": "crm",
+  "table": "crm_quotation",
+  "plural": "Quotations"
+ },
+ {
+  "key": "crm.tender",
+  "feature": "crm.tenders",
+  "label": "Tender",
+  "kind": "transaction",
+  "scope": "company",
+  "numbering": "TN/{FY}/{SEQ:4}",
+  "dated": true,
+  "title": "work_name",
+  "amount": "estimated_value",
+  "fields": [
+   {
+    "name": "work_name",
+    "label": "Name of work",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "department",
+    "label": "Department",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "tender_ref",
+    "label": "Tender / NIT no",
+    "type": "text"
+   },
+   {
+    "name": "portal",
+    "label": "Portal",
+    "type": "select",
+    "options": [
+     "cppp",
+     "state_eproc",
+     "gem",
+     "railways_ireps",
+     "nhai",
+     "offline",
+     "other"
+    ]
+   },
+   {
+    "name": "estimated_value",
+    "label": "Estimated value",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "emd_amount",
+    "label": "EMD",
+    "type": "money"
+   },
+   {
+    "name": "emd_mode",
+    "label": "EMD mode",
+    "type": "select",
+    "options": [
+     "dd",
+     "bg",
+     "online",
+     "exempt"
+    ]
+   },
+   {
+    "name": "emd_status",
+    "label": "EMD status",
+    "type": "select",
+    "options": [
+     "not_paid",
+     "paid",
+     "refund_due",
+     "refunded",
+     "forfeited"
+    ],
+    "default": "not_paid"
+   },
+   {
+    "name": "tender_fee",
+    "label": "Tender fee",
+    "type": "money"
+   },
+   {
+    "name": "pre_bid_at",
+    "label": "Pre-bid meeting",
+    "type": "datetime"
+   },
+   {
+    "name": "bid_due_at",
+    "label": "Bid due",
+    "type": "datetime",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "opening_at",
+    "label": "Opening",
+    "type": "datetime"
+   },
+   {
+    "name": "stage",
+    "label": "Stage",
+    "type": "select",
+    "options": [
+     "identified",
+     "documents_bought",
+     "pre_bid",
+     "submitted",
+     "technically_qualified",
+     "l1",
+     "l2",
+     "l3",
+     "awarded",
+     "work_order",
+     "lost",
+     "dropped"
+    ],
+    "default": "identified",
+    "list": true
+   },
+   {
+    "name": "our_quote_pct",
+    "label": "Our quote (% above/below estimate)",
+    "type": "percent",
+    "sensitive": "rates"
+   },
+   {
+    "name": "competitor_quotes",
+    "label": "Competitor quotes",
+    "type": "json"
+   },
+   {
+    "name": "result_note",
+    "label": "Result",
+    "type": "text"
+   },
+   {
+    "name": "documents",
+    "label": "NIT / BOQ / corrigenda",
+    "type": "photos"
+   }
+  ],
+  "module": "crm",
+  "table": "crm_tender",
+  "plural": "Tenders",
+  "children": []
+ },
+ {
+  "key": "crm.site_pin",
+  "feature": "crm.site_hunting_map",
+  "label": "Construction site spotted",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "map-pin",
+  "title": "site_name",
+  "description": "Salespeople pin construction sites they pass; repeat visits are tracked and nearby sites suggested.",
+  "fields": [
+   {
+    "name": "site_name",
+    "label": "Site / builder",
+    "type": "text",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "pin",
+    "label": "Location",
+    "type": "geo",
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "site_type",
+    "label": "Type",
+    "type": "select",
+    "options": [
+     "house",
+     "apartment",
+     "commercial",
+     "road",
+     "govt_building",
+     "industrial",
+     "other"
+    ],
+    "quick": true
+   },
+   {
+    "name": "stage",
+    "label": "Construction stage",
+    "type": "select",
+    "options": [
+     "foundation",
+     "columns",
+     "slab",
+     "brickwork",
+     "plastering",
+     "finishing"
+    ],
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "contact_name",
+    "label": "Contact",
+    "type": "text"
+   },
+   {
+    "name": "contact_mobile",
+    "label": "Contact mobile",
+    "type": "phone",
+    "check": "contact_mobile is null or contact_mobile ~ '^\\+?[0-9]{10,15}$'"
+   },
+   {
+    "name": "photo",
+    "label": "Photo",
+    "type": "photo",
+    "quick": true
+   },
+   {
+    "name": "lead_id",
+    "label": "Lead created",
+    "type": "ref",
+    "ref": "crm.lead"
+   }
+  ],
+  "module": "crm",
+  "table": "crm_site_pin",
+  "plural": "Construction site spotteds",
+  "children": []
+ },
+ {
+  "key": "rmc.mix_design",
+  "feature": "rmc.mix_design",
+  "label": "Mix design",
+  "kind": "master",
+  "scope": "location",
+  "title": "grade",
+  "workflow": true,
+  "description": "Approved quantities per m³. Material cost per m³ is worked out from the latest purchase rates.",
+  "fields": [
+   {
+    "name": "grade",
+    "label": "Grade",
+    "type": "select",
+    "options": [
+     "M7.5",
+     "M10",
+     "M15",
+     "M20",
+     "M25",
+     "M30",
+     "M35",
+     "M40",
+     "M45",
+     "M50",
+     "M55",
+     "M60",
+     "SCC",
+     "PQC",
+     "DLC",
+     "special"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "mix_code",
+    "label": "Mix code",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "version",
+    "label": "Version",
+    "type": "int",
+    "default": "1",
+    "list": true
+   },
+   {
+    "name": "wc_ratio",
+    "label": "W/C ratio",
+    "type": "number",
+    "check": "wc_ratio is null or wc_ratio between 0.25 and 0.7"
+   },
+   {
+    "name": "slump_target_mm",
+    "label": "Target slump",
+    "type": "int",
+    "unit": "mm"
+   },
+   {
+    "name": "slump_tolerance_mm",
+    "label": "Slump tolerance ±",
+    "type": "int",
+    "unit": "mm",
+    "default": "25"
+   },
+   {
+    "name": "max_aggregate_mm",
+    "label": "Max aggregate size",
+    "type": "int",
+    "unit": "mm",
+    "default": "20"
+   },
+   {
+    "name": "cement_type",
+    "label": "Cement",
+    "type": "select",
+    "options": [
+     "OPC43",
+     "OPC53",
+     "PPC",
+     "PSC"
+    ]
+   },
+   {
+    "name": "effective_from",
+    "label": "Effective from",
+    "type": "date",
+    "required": true
+   },
+   {
+    "name": "material_cost_per_m3",
+    "label": "Material cost per m³",
+    "type": "money",
+    "sensitive": "cost",
+    "list": true
+   },
+   {
+    "name": "selling_price_per_m3",
+    "label": "Base selling price per m³",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "is_active",
+    "label": "In use",
+    "type": "bool",
+    "default": "true"
+   }
+  ],
+  "children": [
+   {
+    "name": "materials",
+    "label": "Materials per m³",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Material",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty_per_m3",
+      "label": "Qty per m³",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "uom",
+      "label": "Unit",
+      "type": "text",
+      "default": "KG"
+     },
+     {
+      "name": "tolerance_pct",
+      "label": "Batch tolerance ±%",
+      "type": "percent",
+      "default": "3"
+     }
+    ],
+    "key": "rmc.mix_design.materials",
+    "table": "rmc_mix_design_materials"
+   }
+  ],
+  "module": "rmc",
+  "table": "rmc_mix_design",
+  "plural": "Mix designs"
+ },
+ {
+  "key": "rmc.order",
+  "feature": "rmc.orders",
+  "label": "RMC order",
+  "plural": "RMC orders",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "SO/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "amount": "order_value",
+  "title": "grade",
+  "mobile": true,
+  "icon": "calendar",
+  "description": "Customer order with pour slot. Credit limit is checked before confirming.",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Customer",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "site_name",
+    "label": "Site",
+    "type": "text",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "site_location",
+    "label": "Site pin",
+    "type": "geo"
+   },
+   {
+    "name": "site_contact",
+    "label": "Site contact",
+    "type": "text"
+   },
+   {
+    "name": "site_mobile",
+    "label": "Site mobile",
+    "type": "phone",
+    "check": "site_mobile is null or site_mobile ~ '^\\+?[0-9]{10,15}$'"
+   },
+   {
+    "name": "distance_km",
+    "label": "Distance from plant",
+    "type": "int",
+    "unit": "km"
+   },
+   {
+    "name": "grade",
+    "label": "Grade",
+    "type": "select",
+    "options": [
+     "M7.5",
+     "M10",
+     "M15",
+     "M20",
+     "M25",
+     "M30",
+     "M35",
+     "M40",
+     "M45",
+     "M50",
+     "M55",
+     "M60",
+     "SCC",
+     "PQC",
+     "DLC",
+     "special"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "mix_design_id",
+    "label": "Mix design",
+    "type": "ref",
+    "ref": "rmc.mix_design"
+   },
+   {
+    "name": "qty_m3",
+    "label": "Quantity",
+    "type": "qty",
+    "unit": "m³",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "qty_m3 > 0"
+   },
+   {
+    "name": "element",
+    "label": "Pouring for",
+    "type": "select",
+    "options": [
+     "footing",
+     "raft",
+     "column",
+     "beam",
+     "slab",
+     "staircase",
+     "wall",
+     "road",
+     "pcc",
+     "pile",
+     "other"
+    ],
+    "quick": true
+   },
+   {
+    "name": "pour_start",
+    "label": "Pour start",
+    "type": "datetime",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "pour_rate_m3_hr",
+    "label": "Pour rate",
+    "type": "number",
+    "unit": "m³/hr",
+    "default": "15"
+   },
+   {
+    "name": "pump",
+    "label": "Pump",
+    "type": "select",
+    "options": [
+     "none",
+     "boom",
+     "line"
+    ],
+    "default": "none"
+   },
+   {
+    "name": "slump_mm",
+    "label": "Slump required",
+    "type": "int",
+    "unit": "mm"
+   },
+   {
+    "name": "rate_per_m3",
+    "label": "Rate per m³",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "pump_charge",
+    "label": "Pump charge",
+    "type": "money",
+    "default": "0",
+    "sensitive": "rates"
+   },
+   {
+    "name": "order_value",
+    "label": "Order value",
+    "type": "money",
+    "expr": "round(qty_m3 * coalesce(rate_per_m3, 0) + coalesce(pump_charge, 0), 2)",
+    "sensitive": "rates",
+    "list": true
+   },
+   {
+    "name": "credit_check",
+    "label": "Credit check",
+    "type": "select",
+    "options": [
+     "not_checked",
+     "ok",
+     "over_limit",
+     "overdue",
+     "override_approved"
+    ],
+    "default": "not_checked",
+    "list": true
+   },
+   {
+    "name": "outstanding_at_order",
+    "label": "Customer outstanding when ordered",
+    "type": "money"
+   },
+   {
+    "name": "delivered_m3",
+    "label": "Delivered",
+    "type": "qty",
+    "unit": "m³",
+    "list": true
+   },
+   {
+    "name": "delivery_status",
+    "label": "Delivery",
+    "type": "select",
+    "options": [
+     "scheduled",
+     "in_progress",
+     "completed",
+     "short_closed",
+     "cancelled"
+    ],
+    "default": "scheduled",
+    "list": true
+   },
+   {
+    "name": "quotation_id",
+    "label": "Quotation",
+    "type": "ref",
+    "ref": "crm.quotation"
+   },
+   {
+    "name": "instructions",
+    "label": "Instructions",
+    "type": "longtext"
+   }
+  ],
+  "module": "rmc",
+  "table": "rmc_order",
+  "children": []
+ },
+ {
+  "key": "rmc.batch",
+  "feature": "rmc.batch_entry",
+  "label": "Batch",
+  "plural": "Batches",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "BT/{LOC}/{FY}/{SEQ:6}",
+  "dated": true,
+  "mobile": true,
+  "icon": "factory",
+  "title": "doc_no",
+  "description": "One load. Actual weights are compared with the mix design; material is taken out of stock.",
+  "fields": [
+   {
+    "name": "order_id",
+    "label": "Order",
+    "type": "ref",
+    "ref": "rmc.order",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Transit mixer",
+    "type": "ref",
+    "ref": "vehicle",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "driver_id",
+    "label": "Driver",
+    "type": "ref",
+    "ref": "app_user"
+   },
+   {
+    "name": "qty_m3",
+    "label": "Load",
+    "type": "qty",
+    "unit": "m³",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "qty_m3 > 0 and qty_m3 <= 12"
+   },
+   {
+    "name": "batch_start",
+    "label": "Batch start",
+    "type": "datetime",
+    "default": "now()"
+   },
+   {
+    "name": "batch_end",
+    "label": "Batch end",
+    "type": "datetime"
+   },
+   {
+    "name": "water_added_l",
+    "label": "Extra water added",
+    "type": "number",
+    "unit": "L",
+    "default": "0"
+   },
+   {
+    "name": "max_deviation_pct",
+    "label": "Worst deviation from mix",
+    "type": "number",
+    "unit": "%",
+    "list": true
+   },
+   {
+    "name": "deviation_alert",
+    "label": "Outside tolerance",
+    "type": "bool",
+    "list": true
+   },
+   {
+    "name": "source",
+    "label": "Weights from",
+    "type": "select",
+    "options": [
+     "plant_controller",
+     "manual"
+    ],
+    "default": "manual"
+   },
+   {
+    "name": "controller_batch_no",
+    "label": "Controller batch no",
+    "type": "text"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "max_deviation_pct",
+    "child": "materials",
+    "expr": "max(abs(deviation_pct))"
+   }
+  ],
+  "children": [
+   {
+    "name": "materials",
+    "label": "Actual weights",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Material",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "target_qty",
+      "label": "Target",
+      "type": "qty"
+     },
+     {
+      "name": "actual_qty",
+      "label": "Actual",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "deviation_pct",
+      "label": "Deviation %",
+      "type": "number",
+      "expr": "case when coalesce(target_qty, 0) = 0 then 0 else round((actual_qty - target_qty) / target_qty * 100, 2) end"
+     }
+    ],
+    "key": "rmc.batch.materials",
+    "table": "rmc_batch_materials"
+   }
+  ],
+  "stock": [
+   {
+    "child": "materials",
+    "item": "item_id",
+    "qty": "actual_qty",
+    "dir": "out"
+   }
+  ],
+  "module": "rmc",
+  "table": "rmc_batch"
+ },
+ {
+  "key": "rmc.challan",
+  "feature": "rmc.delivery_challan",
+  "label": "Delivery challan",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "DC/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "file-check",
+  "title": "doc_no",
+  "amount": "qty_m3",
+  "description": "Printed on Bluetooth printer even offline (number from the phone's reserved block). Signed on the phone at site.",
+  "fields": [
+   {
+    "name": "order_id",
+    "label": "Order",
+    "type": "ref",
+    "ref": "rmc.order",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "batch_id",
+    "label": "Batch",
+    "type": "ref",
+    "ref": "rmc.batch"
+   },
+   {
+    "name": "party_id",
+    "label": "Customer",
+    "type": "ref",
+    "ref": "party",
+    "list": true
+   },
+   {
+    "name": "grade",
+    "label": "Grade",
+    "type": "select",
+    "options": [
+     "M7.5",
+     "M10",
+     "M15",
+     "M20",
+     "M25",
+     "M30",
+     "M35",
+     "M40",
+     "M45",
+     "M50",
+     "M55",
+     "M60",
+     "SCC",
+     "PQC",
+     "DLC",
+     "special"
+    ],
+    "list": true
+   },
+   {
+    "name": "qty_m3",
+    "label": "Qty",
+    "type": "qty",
+    "unit": "m³",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Transit mixer",
+    "type": "ref",
+    "ref": "vehicle",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "left_plant_at",
+    "label": "Left plant",
+    "type": "datetime",
+    "default": "now()"
+   },
+   {
+    "name": "reached_site_at",
+    "label": "Reached site",
+    "type": "datetime"
+   },
+   {
+    "name": "pour_start_at",
+    "label": "Pour start",
+    "type": "datetime"
+   },
+   {
+    "name": "pour_end_at",
+    "label": "Pour end",
+    "type": "datetime"
+   },
+   {
+    "name": "left_site_at",
+    "label": "Left site",
+    "type": "datetime"
+   },
+   {
+    "name": "site_wait_min",
+    "label": "Waiting at site (min)",
+    "type": "int",
+    "expr": "case when reached_site_at is null or pour_start_at is null then null else (extract(epoch from pour_start_at - reached_site_at) / 60)::int end"
+   },
+   {
+    "name": "slump_at_site_mm",
+    "label": "Slump at site",
+    "type": "int",
+    "unit": "mm"
+   },
+   {
+    "name": "returned_m3",
+    "label": "Returned concrete",
+    "type": "qty",
+    "unit": "m³",
+    "default": "0"
+   },
+   {
+    "name": "returned_disposal",
+    "label": "Returned concrete used for",
+    "type": "select",
+    "options": [
+     "blocks",
+     "pcc_yard",
+     "another_order",
+     "waste"
+    ]
+   },
+   {
+    "name": "receiver_name",
+    "label": "Received by",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "receiver_signature",
+    "label": "Signature",
+    "type": "photo",
+    "quick": true
+   },
+   {
+    "name": "receiver_photo",
+    "label": "Photo at site",
+    "type": "photo"
+   },
+   {
+    "name": "delivered_geo",
+    "label": "Delivered at (GPS)",
+    "type": "geo"
+   },
+   {
+    "name": "billing_status",
+    "label": "Billing",
+    "type": "select",
+    "options": [
+     "unbilled",
+     "billed",
+     "not_billable"
+    ],
+    "default": "unbilled",
+    "list": true
+   },
+   {
+    "name": "invoice_id",
+    "label": "Invoice",
+    "type": "ref",
+    "ref": "finance.sales_invoice"
+   }
+  ],
+  "module": "rmc",
+  "table": "rmc_challan",
+  "plural": "Delivery challans",
+  "children": []
+ },
+ {
+  "key": "rmc.cube_test",
+  "feature": "rmc.cube_test",
+  "label": "Cube test",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "CT/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "title": "doc_no",
+  "description": "Samples cast per pour; results at 7 and 28 days (configurable). Failures alert the plant head.",
+  "fields": [
+   {
+    "name": "order_id",
+    "label": "Order",
+    "type": "ref",
+    "ref": "rmc.order",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "batch_id",
+    "label": "Batch",
+    "type": "ref",
+    "ref": "rmc.batch"
+   },
+   {
+    "name": "grade",
+    "label": "Grade",
+    "type": "select",
+    "options": [
+     "M7.5",
+     "M10",
+     "M15",
+     "M20",
+     "M25",
+     "M30",
+     "M35",
+     "M40",
+     "M45",
+     "M50",
+     "M55",
+     "M60",
+     "SCC",
+     "PQC",
+     "DLC",
+     "special"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "cast_date",
+    "label": "Cast on",
+    "type": "date",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "cubes_cast",
+    "label": "Cubes cast",
+    "type": "int",
+    "default": "6"
+   },
+   {
+    "name": "lab",
+    "label": "Tested at",
+    "type": "select",
+    "options": [
+     "own_lab",
+     "third_party"
+    ],
+    "default": "own_lab"
+   },
+   {
+    "name": "required_strength",
+    "label": "fck required",
+    "type": "number",
+    "unit": "N/mm²"
+   },
+   {
+    "name": "avg_28_day",
+    "label": "28-day average",
+    "type": "number",
+    "unit": "N/mm²",
+    "list": true
+   },
+   {
+    "name": "result",
+    "label": "Result",
+    "type": "select",
+    "options": [
+     "pending",
+     "pass",
+     "fail"
+    ],
+    "default": "pending",
+    "list": true
+   },
+   {
+    "name": "report_photo",
+    "label": "Lab report",
+    "type": "photo"
+   }
+  ],
+  "children": [
+   {
+    "name": "results",
+    "label": "Results",
+    "fields": [
+     {
+      "name": "age_days",
+      "label": "Age (days)",
+      "type": "int",
+      "required": true
+     },
+     {
+      "name": "test_date",
+      "label": "Tested on",
+      "type": "date"
+     },
+     {
+      "name": "load_kn",
+      "label": "Load",
+      "type": "number",
+      "unit": "kN",
+      "required": true
+     },
+     {
+      "name": "cube_size_mm",
+      "label": "Cube size",
+      "type": "number",
+      "unit": "mm",
+      "default": "150"
+     },
+     {
+      "name": "strength",
+      "label": "Strength",
+      "type": "number",
+      "expr": "round(load_kn * 1000 / (coalesce(cube_size_mm, 150) * coalesce(cube_size_mm, 150)), 2)"
+     }
+    ],
+    "key": "rmc.cube_test.results",
+    "table": "rmc_cube_test_results"
+   }
+  ],
+  "module": "rmc",
+  "table": "rmc_cube_test",
+  "plural": "Cube tests"
+ },
+ {
+  "key": "bitumen.jmf",
+  "feature": "bitumen.jmf",
+  "label": "Job mix formula",
+  "kind": "master",
+  "scope": "location",
+  "title": "mix_type",
+  "workflow": true,
+  "fields": [
+   {
+    "name": "mix_type",
+    "label": "Mix",
+    "type": "select",
+    "options": [
+     "DBM",
+     "BC",
+     "SDBC",
+     "BM",
+     "MSS",
+     "PMC",
+     "WMM",
+     "GSB"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "jmf_code",
+    "label": "JMF code",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "bitumen_pct",
+    "label": "Bitumen %",
+    "type": "percent",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "bitumen_grade",
+    "label": "Bitumen grade",
+    "type": "select",
+    "options": [
+     "VG10",
+     "VG30",
+     "VG40",
+     "CRMB55",
+     "CRMB60",
+     "PMB40",
+     "emulsion_RS1",
+     "emulsion_SS1"
+    ]
+   },
+   {
+    "name": "mix_temp_min_c",
+    "label": "Mix temperature min",
+    "type": "number",
+    "unit": "°C",
+    "default": "150"
+   },
+   {
+    "name": "mix_temp_max_c",
+    "label": "Mix temperature max",
+    "type": "number",
+    "unit": "°C",
+    "default": "165"
+   },
+   {
+    "name": "laying_temp_min_c",
+    "label": "Laying temperature min",
+    "type": "number",
+    "unit": "°C",
+    "default": "120"
+   },
+   {
+    "name": "gradation",
+    "label": "Gradation limits",
+    "type": "json",
+    "help": "{\"26.5mm\": [100,100], \"19mm\": [79,100], ...}"
+   },
+   {
+    "name": "marshall_stability_min_kn",
+    "label": "Marshall stability min",
+    "type": "number",
+    "unit": "kN"
+   },
+   {
+    "name": "cost_per_mt",
+    "label": "Cost per MT",
+    "type": "money",
+    "sensitive": "cost"
+   },
+   {
+    "name": "price_per_mt",
+    "label": "Price per MT",
+    "type": "money",
+    "sensitive": "rates"
+   }
+  ],
+  "children": [
+   {
+    "name": "bins",
+    "label": "Aggregate proportions",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Aggregate / filler",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "pct",
+      "label": "% of aggregate",
+      "type": "percent",
+      "required": true
+     }
+    ],
+    "key": "bitumen.jmf.bins",
+    "table": "bitumen_jmf_bins"
+   }
+  ],
+  "module": "bitumen",
+  "table": "bitumen_jmf",
+  "plural": "Job mix formulas"
+ },
+ {
+  "key": "bitumen.batch",
+  "feature": "bitumen.production_batch",
+  "label": "Production batch",
+  "plural": "Production batches",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "HM/{LOC}/{FY}/{SEQ:6}",
+  "dated": true,
+  "mobile": true,
+  "icon": "flame",
+  "title": "doc_no",
+  "description": "Each batch with temperature. Materials used come off stock; temperature outside the JMF band is flagged.",
+  "fields": [
+   {
+    "name": "jmf_id",
+    "label": "JMF",
+    "type": "ref",
+    "ref": "bitumen.jmf",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "batch_mt",
+    "label": "Batch",
+    "type": "qty",
+    "unit": "MT",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "batch_mt > 0"
+   },
+   {
+    "name": "mix_temp_c",
+    "label": "Mix temperature",
+    "type": "number",
+    "unit": "°C",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "temp_alert",
+    "label": "Temperature outside band",
+    "type": "bool",
+    "list": true
+   },
+   {
+    "name": "bitumen_kg",
+    "label": "Bitumen used",
+    "type": "qty",
+    "unit": "kg"
+   },
+   {
+    "name": "burner_fuel_l",
+    "label": "Burner fuel",
+    "type": "qty",
+    "unit": "L"
+   },
+   {
+    "name": "start_at",
+    "label": "Start",
+    "type": "datetime",
+    "default": "now()"
+   },
+   {
+    "name": "end_at",
+    "label": "End",
+    "type": "datetime"
+   },
+   {
+    "name": "source",
+    "label": "Weights from",
+    "type": "select",
+    "options": [
+     "plant_controller",
+     "manual"
+    ],
+    "default": "manual"
+   }
+  ],
+  "children": [
+   {
+    "name": "materials",
+    "label": "Materials",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Material",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty_kg",
+      "label": "Qty",
+      "type": "qty",
+      "unit": "kg",
+      "required": true
+     }
+    ],
+    "key": "bitumen.batch.materials",
+    "table": "bitumen_batch_materials"
+   }
+  ],
+  "stock": [
+   {
+    "child": "materials",
+    "item": "item_id",
+    "qty": "qty_kg",
+    "dir": "out"
+   }
+  ],
+  "module": "bitumen",
+  "table": "bitumen_batch"
+ },
+ {
+  "key": "bitumen.dispatch",
+  "feature": "bitumen.dispatch",
+  "label": "Hot-mix dispatch",
+  "plural": "Hot-mix dispatches",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "HD/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "truck",
+  "amount": "amount",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Customer / project",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "mix_type",
+    "label": "Mix",
+    "type": "select",
+    "options": [
+     "DBM",
+     "BC",
+     "SDBC",
+     "BM",
+     "MSS",
+     "PMC",
+     "WMM",
+     "GSB"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "weighbridge_ticket_id",
+    "label": "Weighbridge ticket",
+    "type": "ref",
+    "ref": "weighbridge.ticket"
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Tipper",
+    "type": "ref",
+    "ref": "vehicle",
+    "quick": true
+   },
+   {
+    "name": "vehicle_no",
+    "label": "Vehicle no",
+    "type": "text"
+   },
+   {
+    "name": "net_mt",
+    "label": "Net",
+    "type": "qty",
+    "unit": "MT",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "dispatch_temp_c",
+    "label": "Temperature at dispatch",
+    "type": "number",
+    "unit": "°C",
+    "quick": true
+   },
+   {
+    "name": "temp_photo",
+    "label": "Probe photo",
+    "type": "photo"
+   },
+   {
+    "name": "tarpaulin_covered",
+    "label": "Tarpaulin covered",
+    "type": "bool",
+    "quick": true
+   },
+   {
+    "name": "arrival_temp_c",
+    "label": "Temperature at site",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "name": "laying_temp_c",
+    "label": "Laying temperature",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "name": "site_acceptance",
+    "label": "Site",
+    "type": "select",
+    "options": [
+     "accepted",
+     "rejected_low_temp",
+     "rejected_other"
+    ]
+   },
+   {
+    "name": "site_name",
+    "label": "Site / chainage",
+    "type": "text"
+   },
+   {
+    "name": "rate_per_mt",
+    "label": "Rate per MT",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "expr": "round(net_mt * coalesce(rate_per_mt, 0), 2)",
+    "sensitive": "rates",
+    "list": true
+   },
+   {
+    "name": "billing_status",
+    "label": "Billing",
+    "type": "select",
+    "options": [
+     "unbilled",
+     "billed",
+     "not_billable"
+    ],
+    "default": "unbilled",
+    "list": true
+   }
+  ],
+  "module": "bitumen",
+  "table": "bitumen_dispatch",
+  "children": []
+ },
+ {
+  "key": "bitumen.quality_test",
+  "feature": "bitumen.quality_lab",
+  "label": "Quality test",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "title": "mix_type",
+  "fields": [
+   {
+    "name": "mix_type",
+    "label": "Mix",
+    "type": "select",
+    "options": [
+     "DBM",
+     "BC",
+     "SDBC",
+     "BM",
+     "MSS",
+     "PMC",
+     "WMM",
+     "GSB"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "batch_id",
+    "label": "Batch",
+    "type": "ref",
+    "ref": "bitumen.batch"
+   },
+   {
+    "name": "bitumen_content_pct",
+    "label": "Bitumen content (extraction)",
+    "type": "percent",
+    "list": true
+   },
+   {
+    "name": "marshall_stability_kn",
+    "label": "Marshall stability",
+    "type": "number",
+    "unit": "kN"
+   },
+   {
+    "name": "flow_mm",
+    "label": "Flow",
+    "type": "number",
+    "unit": "mm"
+   },
+   {
+    "name": "density",
+    "label": "Density",
+    "type": "number",
+    "unit": "g/cc"
+   },
+   {
+    "name": "air_voids_pct",
+    "label": "Air voids %",
+    "type": "percent"
+   },
+   {
+    "name": "gradation_result",
+    "label": "Gradation",
+    "type": "json"
+   },
+   {
+    "name": "result",
+    "label": "Result",
+    "type": "select",
+    "options": [
+     "pass",
+     "fail"
+    ],
+    "list": true
+   },
+   {
+    "name": "report_photo",
+    "label": "Report",
+    "type": "photo"
+   }
+  ],
+  "module": "bitumen",
+  "table": "bitumen_quality_test",
+  "plural": "Quality tests",
+  "children": []
+ },
+ {
+  "key": "weighbridge.ticket",
+  "feature": "weighbridge.tickets",
+  "label": "Weighment ticket",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "WB/{LOC}/{FY}/{SEQ:6}",
+  "dated": true,
+  "mobile": true,
+  "icon": "scale",
+  "title": "vehicle_no",
+  "amount": "net_kg",
+  "description": "First and second weight from the scale with camera snapshots. Net goes to the GRN or dispatch automatically.",
+  "fields": [
+   {
+    "name": "ticket_type",
+    "label": "Type",
+    "type": "select",
+    "options": [
+     "purchase_inward",
+     "sales_dispatch",
+     "internal_transfer",
+     "job_work",
+     "paid_weighing"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "vehicle_no",
+    "label": "Vehicle no",
+    "type": "text",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "vehicle_no = upper(regexp_replace(vehicle_no, '[^A-Za-z0-9]', '', 'g'))"
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle (if ours)",
+    "type": "ref",
+    "ref": "vehicle"
+   },
+   {
+    "name": "vehicle_source",
+    "label": "Vehicle no from",
+    "type": "select",
+    "options": [
+     "anpr",
+     "rfid",
+     "typed"
+    ],
+    "default": "typed"
+   },
+   {
+    "name": "driver_name",
+    "label": "Driver",
+    "type": "text"
+   },
+   {
+    "name": "party_id",
+    "label": "Party",
+    "type": "ref",
+    "ref": "party",
+    "list": true
+   },
+   {
+    "name": "item_id",
+    "label": "Material",
+    "type": "ref",
+    "ref": "item",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "linked_entity",
+    "label": "Linked document type",
+    "type": "text"
+   },
+   {
+    "name": "linked_id",
+    "label": "Linked document",
+    "type": "text"
+   },
+   {
+    "name": "party_challan_no",
+    "label": "Party challan / invoice no",
+    "type": "text"
+   },
+   {
+    "name": "party_qty_kg",
+    "label": "Party's weight",
+    "type": "qty",
+    "unit": "kg"
+   },
+   {
+    "name": "first_weight_kg",
+    "label": "First weight",
+    "type": "number",
+    "unit": "kg",
+    "quick": true
+   },
+   {
+    "name": "first_weight_at",
+    "label": "First weighed at",
+    "type": "datetime"
+   },
+   {
+    "name": "first_mode",
+    "label": "First weight",
+    "type": "select",
+    "options": [
+     "scale",
+     "manual"
+    ],
+    "default": "scale"
+   },
+   {
+    "name": "first_images",
+    "label": "First weight photos",
+    "type": "photos"
+   },
+   {
+    "name": "second_weight_kg",
+    "label": "Second weight",
+    "type": "number",
+    "unit": "kg",
+    "quick": true
+   },
+   {
+    "name": "second_weight_at",
+    "label": "Second weighed at",
+    "type": "datetime"
+   },
+   {
+    "name": "second_mode",
+    "label": "Second weight",
+    "type": "select",
+    "options": [
+     "scale",
+     "manual"
+    ],
+    "default": "scale"
+   },
+   {
+    "name": "second_images",
+    "label": "Second weight photos",
+    "type": "photos"
+   },
+   {
+    "name": "gross_kg",
+    "label": "Gross",
+    "type": "number",
+    "expr": "greatest(first_weight_kg, second_weight_kg)",
+    "unit": "kg",
+    "list": true
+   },
+   {
+    "name": "tare_kg",
+    "label": "Tare",
+    "type": "number",
+    "expr": "least(first_weight_kg, second_weight_kg)",
+    "unit": "kg"
+   },
+   {
+    "name": "net_kg",
+    "label": "Net",
+    "type": "number",
+    "expr": "abs(second_weight_kg - first_weight_kg)",
+    "unit": "kg",
+    "list": true
+   },
+   {
+    "name": "deduction_kg",
+    "label": "Deductions (moisture, bags)",
+    "type": "number",
+    "unit": "kg",
+    "default": "0"
+   },
+   {
+    "name": "final_kg",
+    "label": "Final qty",
+    "type": "number",
+    "expr": "abs(second_weight_kg - first_weight_kg) - coalesce(deduction_kg, 0)",
+    "unit": "kg"
+   },
+   {
+    "name": "short_kg",
+    "label": "Short vs party (−)",
+    "type": "number",
+    "expr": "case when party_qty_kg is null or second_weight_kg is null then null else abs(second_weight_kg - first_weight_kg) - coalesce(deduction_kg, 0) - party_qty_kg end"
+   },
+   {
+    "name": "standard_tare_kg",
+    "label": "Vehicle's usual tare",
+    "type": "number",
+    "unit": "kg"
+   },
+   {
+    "name": "tare_alert",
+    "label": "Tare differs from usual",
+    "type": "bool",
+    "list": true
+   },
+   {
+    "name": "minutes_between",
+    "label": "Minutes between weighments",
+    "type": "int"
+   },
+   {
+    "name": "weighing_charge",
+    "label": "Weighing charge",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "ticket_status",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "first_done",
+     "completed",
+     "cancelled"
+    ],
+    "default": "first_done",
+    "list": true
+   },
+   {
+    "name": "manual_reason",
+    "label": "Why manual?",
+    "type": "longtext"
+   },
+   {
+    "name": "operator_id",
+    "label": "Operator",
+    "type": "ref",
+    "ref": "app_user"
+   }
+  ],
+  "module": "weighbridge",
+  "table": "weighbridge_ticket",
+  "plural": "Weighment tickets",
+  "children": []
+ },
+ {
+  "key": "bricks.recipe",
+  "feature": "bricks.recipe",
+  "label": "Recipe",
+  "kind": "master",
+  "scope": "location",
+  "title": "product_id",
+  "fields": [
+   {
+    "name": "product_id",
+    "label": "Product",
+    "type": "ref",
+    "ref": "item",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "per_units",
+    "label": "Quantities are per",
+    "type": "int",
+    "default": "1000",
+    "unit": "units"
+   },
+   {
+    "name": "units_per_stroke",
+    "label": "Units per machine stroke",
+    "type": "int",
+    "default": "6"
+   },
+   {
+    "name": "curing_days",
+    "label": "Curing days",
+    "type": "int",
+    "default": "14"
+   },
+   {
+    "name": "cost_per_1000",
+    "label": "Cost per 1000",
+    "type": "money",
+    "sensitive": "cost",
+    "list": true
+   }
+  ],
+  "children": [
+   {
+    "name": "materials",
+    "label": "Materials",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Material",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "uom",
+      "label": "Unit",
+      "type": "text",
+      "default": "KG"
+     }
+    ],
+    "key": "bricks.recipe.materials",
+    "table": "bricks_recipe_materials"
+   }
+  ],
+  "module": "bricks",
+  "table": "bricks_recipe",
+  "plural": "Recipes"
+ },
+ {
+  "key": "bricks.production",
+  "feature": "bricks.daily_production",
+  "label": "Daily production",
+  "plural": "Daily production",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "BP/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "blocks",
+  "title": "doc_no",
+  "description": "One screen for the supervisor. Materials are taken from the recipe; good units go to the curing yard.",
+  "fields": [
+   {
+    "name": "shift",
+    "label": "Shift",
+    "type": "select",
+    "options": [
+     "day",
+     "night"
+    ],
+    "default": "day",
+    "quick": true
+   },
+   {
+    "name": "machine",
+    "label": "Machine",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "product_id",
+    "label": "Product",
+    "type": "ref",
+    "ref": "item",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "good_units",
+    "label": "Good units",
+    "type": "int",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "good_units >= 0"
+   },
+   {
+    "name": "rejected_units",
+    "label": "Rejected at moulding",
+    "type": "int",
+    "default": "0",
+    "quick": true
+   },
+   {
+    "name": "operators",
+    "label": "Operators",
+    "type": "int"
+   },
+   {
+    "name": "power_units_kwh",
+    "label": "Power used",
+    "type": "number",
+    "unit": "kWh"
+   },
+   {
+    "name": "downtime_minutes",
+    "label": "Downtime (min)",
+    "type": "number",
+    "default": "0"
+   },
+   {
+    "name": "downtime_reason",
+    "label": "Downtime reason",
+    "type": "text"
+   },
+   {
+    "name": "curing_block",
+    "label": "Curing block / yard",
+    "type": "text",
+    "quick": true
+   }
+  ],
+  "children": [
+   {
+    "name": "materials",
+    "label": "Materials used",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Material",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true
+     }
+    ],
+    "key": "bricks.production.materials",
+    "table": "bricks_production_materials"
+   }
+  ],
+  "stock": [
+   {
+    "child": "materials",
+    "item": "item_id",
+    "qty": "qty",
+    "dir": "out"
+   }
+  ],
+  "module": "bricks",
+  "table": "bricks_production"
+ },
+ {
+  "key": "bricks.curing_lot",
+  "feature": "bricks.curing",
+  "label": "Curing lot",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "LOT/{LOC}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "droplets",
+  "title": "doc_no",
+  "fields": [
+   {
+    "name": "production_id",
+    "label": "Production",
+    "type": "ref",
+    "ref": "bricks.production",
+    "required": true
+   },
+   {
+    "name": "product_id",
+    "label": "Product",
+    "type": "ref",
+    "ref": "item",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "qty",
+    "label": "Units",
+    "type": "int",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "curing_block",
+    "label": "Block / yard",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "ready_on",
+    "label": "Ready on",
+    "type": "date",
+    "list": true
+   },
+   {
+    "name": "broken",
+    "label": "Broken in curing",
+    "type": "int",
+    "default": "0"
+   },
+   {
+    "name": "dispatched",
+    "label": "Dispatched",
+    "type": "int",
+    "default": "0"
+   },
+   {
+    "name": "available",
+    "label": "Available",
+    "type": "int",
+    "expr": "qty - coalesce(broken, 0) - coalesce(dispatched, 0)",
+    "list": true
+   },
+   {
+    "name": "lot_status",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "curing",
+     "ready",
+     "partly_dispatched",
+     "finished"
+    ],
+    "default": "curing",
+    "list": true
+   },
+   {
+    "name": "last_watered",
+    "label": "Last watered",
+    "type": "date"
+   }
+  ],
+  "module": "bricks",
+  "table": "bricks_curing_lot",
+  "plural": "Curing lots",
+  "children": []
+ },
+ {
+  "key": "bricks.breakage",
+  "feature": "bricks.breakage",
+  "label": "Breakage",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "trash",
+  "title": "stage",
+  "fields": [
+   {
+    "name": "stage",
+    "label": "Where",
+    "type": "select",
+    "options": [
+     "curing",
+     "stacking",
+     "loading",
+     "transit",
+     "at_customer"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "product_id",
+    "label": "Product",
+    "type": "ref",
+    "ref": "item",
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "lot_id",
+    "label": "Lot",
+    "type": "ref",
+    "ref": "bricks.curing_lot"
+   },
+   {
+    "name": "qty",
+    "label": "Units broken",
+    "type": "int",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "reason",
+    "label": "Reason",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "photo",
+    "label": "Photo",
+    "type": "photo",
+    "quick": true
+   }
+  ],
+  "module": "bricks",
+  "table": "bricks_breakage",
+  "plural": "Breakages",
+  "children": []
+ },
+ {
+  "key": "bricks.dispatch",
+  "feature": "bricks.dispatch",
+  "label": "Bricks dispatch",
+  "plural": "Bricks dispatches",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "BD/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "truck",
+  "amount": "amount",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Customer",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "product_id",
+    "label": "Product",
+    "type": "ref",
+    "ref": "item",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "lot_id",
+    "label": "From lot",
+    "type": "ref",
+    "ref": "bricks.curing_lot",
+    "quick": true
+   },
+   {
+    "name": "qty",
+    "label": "Units",
+    "type": "int",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "qty > 0"
+   },
+   {
+    "name": "vehicle_no",
+    "label": "Vehicle no",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "loaders",
+    "label": "Loading labour (count)",
+    "type": "int"
+   },
+   {
+    "name": "loading_rate_per_1000",
+    "label": "Loading rate / 1000",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "rate_per_1000",
+    "label": "Rate / 1000",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "expr": "round(qty * coalesce(rate_per_1000, 0) / 1000, 2)",
+    "sensitive": "rates",
+    "list": true
+   },
+   {
+    "name": "billing_status",
+    "label": "Billing",
+    "type": "select",
+    "options": [
+     "unbilled",
+     "billed",
+     "cash_sale"
+    ],
+    "default": "unbilled",
+    "list": true
+   }
+  ],
+  "module": "bricks",
+  "table": "bricks_dispatch",
+  "children": []
+ },
+ {
+  "key": "infra.project",
+  "feature": "infra.projects",
+  "label": "Project",
+  "kind": "master",
+  "scope": "location",
+  "title": "name",
+  "amount": "contract_value",
+  "description": "One project per site location. Contract terms drive RA bill deductions.",
+  "fields": [
+   {
+    "name": "name",
+    "label": "Project",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "client_id",
+    "label": "Client",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "work_order_no",
+    "label": "Work order no",
+    "type": "text"
+   },
+   {
+    "name": "work_order_date",
+    "label": "Work order date",
+    "type": "date"
+   },
+   {
+    "name": "contract_value",
+    "label": "Contract value",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "start_date",
+    "label": "Start",
+    "type": "date"
+   },
+   {
+    "name": "end_date",
+    "label": "Completion due",
+    "type": "date",
+    "list": true
+   },
+   {
+    "name": "retention_pct",
+    "label": "Retention %",
+    "type": "percent",
+    "default": "5"
+   },
+   {
+    "name": "security_deposit_pct",
+    "label": "Security deposit %",
+    "type": "percent",
+    "default": "0"
+   },
+   {
+    "name": "mobilisation_advance",
+    "label": "Mobilisation advance",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "mobilisation_recovery_pct",
+    "label": "Recovery per bill %",
+    "type": "percent",
+    "default": "0"
+   },
+   {
+    "name": "gst_tds_pct",
+    "label": "GST TDS %",
+    "type": "percent",
+    "default": "2"
+   },
+   {
+    "name": "income_tax_tds_pct",
+    "label": "Income tax TDS %",
+    "type": "percent",
+    "default": "2"
+   },
+   {
+    "name": "labour_cess_pct",
+    "label": "Labour cess %",
+    "type": "percent",
+    "default": "1"
+   },
+   {
+    "name": "ld_clause",
+    "label": "Delay penalty clause",
+    "type": "text"
+   },
+   {
+    "name": "escalation_clause",
+    "label": "Price escalation",
+    "type": "bool"
+   },
+   {
+    "name": "manager_id",
+    "label": "Project manager",
+    "type": "ref",
+    "ref": "app_user"
+   },
+   {
+    "name": "project_status",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "mobilising",
+     "running",
+     "slow",
+     "stopped",
+     "completed",
+     "closed"
+    ],
+    "default": "running",
+    "list": true
+   },
+   {
+    "name": "physical_progress_pct",
+    "label": "Physical progress",
+    "type": "percent",
+    "list": true
+   }
+  ],
+  "module": "infra",
+  "table": "infra_project",
+  "plural": "Projects",
+  "children": []
+ },
+ {
+  "key": "infra.boq_item",
+  "feature": "infra.boq",
+  "label": "BOQ item",
+  "kind": "master",
+  "scope": "location",
+  "title": "description",
+  "description": "Bill of quantities. Material norms link to RMC, bricks and bitumen orders.",
+  "fields": [
+   {
+    "name": "project_id",
+    "label": "Project",
+    "type": "ref",
+    "ref": "infra.project",
+    "required": true
+   },
+   {
+    "name": "item_no",
+    "label": "Item no",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "description",
+    "label": "Description",
+    "type": "longtext",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "unit",
+    "label": "Unit",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "contract_qty",
+    "label": "Contract qty",
+    "type": "qty",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "rate",
+    "label": "Rate",
+    "type": "money",
+    "required": true,
+    "sensitive": "rates"
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "expr": "round(contract_qty * rate, 2)",
+    "sensitive": "rates"
+   },
+   {
+    "name": "done_qty",
+    "label": "Done so far",
+    "type": "qty",
+    "default": "0",
+    "list": true
+   },
+   {
+    "name": "billed_qty",
+    "label": "Billed so far",
+    "type": "qty",
+    "default": "0"
+   },
+   {
+    "name": "material_norms",
+    "label": "Material norms",
+    "type": "json",
+    "help": "[{\"item\":\"cement\",\"per_unit\":0.4,\"uom\":\"MT\"}]"
+   },
+   {
+    "name": "subcontractor_id",
+    "label": "Sub-contractor",
+    "type": "ref",
+    "ref": "party"
+   }
+  ],
+  "unique": [
+   [
+    "company_id",
+    "project_id",
+    "item_no"
+   ]
+  ],
+  "module": "infra",
+  "table": "infra_boq_item",
+  "plural": "BOQ items",
+  "children": []
+ },
+ {
+  "key": "infra.dpr",
+  "feature": "infra.dpr",
+  "label": "Daily progress report",
+  "plural": "Daily progress reports",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "DPR/{LOC}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "hard-hat",
+  "title": "doc_no",
+  "description": "Site engineer's day: work done with photos, manpower, machines, materials, hindrances.",
+  "fields": [
+   {
+    "name": "project_id",
+    "label": "Project",
+    "type": "ref",
+    "ref": "infra.project",
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "weather",
+    "label": "Weather",
+    "type": "select",
+    "options": [
+     "clear",
+     "cloudy",
+     "rain",
+     "heavy_rain",
+     "very_hot"
+    ],
+    "quick": true
+   },
+   {
+    "name": "total_manpower",
+    "label": "Manpower",
+    "type": "int",
+    "list": true
+   },
+   {
+    "name": "hindrances",
+    "label": "Hindrances / delays",
+    "type": "longtext"
+   },
+   {
+    "name": "hindrance_cause",
+    "label": "Delay caused by",
+    "type": "select",
+    "options": [
+     "none",
+     "client_decision",
+     "drawing_pending",
+     "payment_delay",
+     "rain",
+     "material_shortage",
+     "labour_shortage",
+     "machine_breakdown",
+     "local_issue"
+    ],
+    "default": "none"
+   },
+   {
+    "name": "next_day_plan",
+    "label": "Tomorrow's plan",
+    "type": "longtext"
+   },
+   {
+    "name": "photos",
+    "label": "Site photos",
+    "type": "photos",
+    "quick": true
+   }
+  ],
+  "rollups": [
+   {
+    "field": "total_manpower",
+    "child": "labour",
+    "expr": "coalesce(sum(count), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "work",
+    "label": "Work done",
+    "fields": [
+     {
+      "name": "boq_item_id",
+      "label": "BOQ item",
+      "type": "ref",
+      "ref": "infra.boq_item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty done",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "location_detail",
+      "label": "Where (floor, chainage)",
+      "type": "text"
+     },
+     {
+      "name": "photo",
+      "label": "Photo",
+      "type": "photo"
+     }
+    ],
+    "key": "infra.dpr.work",
+    "table": "infra_dpr_work"
+   },
+   {
+    "name": "labour",
+    "label": "Manpower",
+    "fields": [
+     {
+      "name": "trade",
+      "label": "Trade",
+      "type": "select",
+      "options": [
+       "mason",
+       "helper",
+       "carpenter",
+       "bar_bender",
+       "electrician",
+       "plumber",
+       "painter",
+       "welder",
+       "operator",
+       "driver",
+       "supervisor",
+       "other"
+      ],
+      "required": true
+     },
+     {
+      "name": "contractor_id",
+      "label": "Labour contractor",
+      "type": "ref",
+      "ref": "party"
+     },
+     {
+      "name": "count",
+      "label": "Count",
+      "type": "int",
+      "required": true
+     },
+     {
+      "name": "ot_hours",
+      "label": "OT hours",
+      "type": "number",
+      "default": "0"
+     }
+    ],
+    "key": "infra.dpr.labour",
+    "table": "infra_dpr_labour"
+   },
+   {
+    "name": "machines",
+    "label": "Machines",
+    "fields": [
+     {
+      "name": "vehicle_id",
+      "label": "Machine",
+      "type": "ref",
+      "ref": "vehicle",
+      "required": true
+     },
+     {
+      "name": "hours",
+      "label": "Hours",
+      "type": "number"
+     },
+     {
+      "name": "fuel_l",
+      "label": "Fuel",
+      "type": "qty",
+      "unit": "L"
+     }
+    ],
+    "key": "infra.dpr.machines",
+    "table": "infra_dpr_machines"
+   }
+  ],
+  "module": "infra",
+  "table": "infra_dpr"
+ },
+ {
+  "key": "infra.measurement",
+  "feature": "infra.measurement_book",
+  "label": "Measurement",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "title": "boq_item_id",
+  "fields": [
+   {
+    "name": "boq_item_id",
+    "label": "BOQ item",
+    "type": "ref",
+    "ref": "infra.boq_item",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "description",
+    "label": "Description",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "nos",
+    "label": "Nos",
+    "type": "number",
+    "default": "1"
+   },
+   {
+    "name": "length",
+    "label": "L",
+    "type": "number"
+   },
+   {
+    "name": "breadth",
+    "label": "B",
+    "type": "number"
+   },
+   {
+    "name": "depth",
+    "label": "D / H",
+    "type": "number"
+   },
+   {
+    "name": "qty",
+    "label": "Qty",
+    "type": "qty",
+    "expr": "round(coalesce(nos, 1) * coalesce(length, 1) * coalesce(breadth, 1) * coalesce(depth, 1), 3)",
+    "list": true
+   },
+   {
+    "name": "measured_by",
+    "label": "Measured by",
+    "type": "select",
+    "options": [
+     "ours",
+     "client_joint"
+    ],
+    "default": "ours"
+   },
+   {
+    "name": "ra_bill_id",
+    "label": "RA bill",
+    "type": "ref",
+    "ref": "infra.ra_bill"
+   }
+  ],
+  "module": "infra",
+  "table": "infra_measurement",
+  "plural": "Measurements",
+  "children": []
+ },
+ {
+  "key": "infra.ra_bill",
+  "feature": "infra.ra_bills",
+  "label": "RA bill",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "RA/{LOC}/{SEQ:3}",
+  "dated": true,
+  "workflow": true,
+  "amount": "net_payable",
+  "title": "doc_no",
+  "description": "Running account bill: cumulative quantities, deductions as per contract, certified amount tracking.",
+  "fields": [
+   {
+    "name": "project_id",
+    "label": "Project",
+    "type": "ref",
+    "ref": "infra.project",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "bill_no",
+    "label": "RA bill no",
+    "type": "int",
+    "list": true
+   },
+   {
+    "name": "period_to",
+    "label": "Work up to",
+    "type": "date"
+   },
+   {
+    "name": "this_bill_value",
+    "label": "This bill (gross)",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "retention",
+    "label": "Retention",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "security_deposit",
+    "label": "Security deposit",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "mobilisation_recovery",
+    "label": "Mobilisation recovery",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "income_tax_tds",
+    "label": "Income tax TDS",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "gst_tds",
+    "label": "GST TDS",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "labour_cess",
+    "label": "Labour cess",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "material_recovery",
+    "label": "Client-supplied material",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "other_deductions",
+    "label": "Other deductions",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "gst_amount",
+    "label": "GST",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "net_payable",
+    "label": "Net payable",
+    "type": "money",
+    "expr": "coalesce(this_bill_value, 0) + coalesce(gst_amount, 0) - coalesce(retention, 0) - coalesce(security_deposit, 0) - coalesce(mobilisation_recovery, 0) - coalesce(income_tax_tds, 0) - coalesce(gst_tds, 0) - coalesce(labour_cess, 0) - coalesce(material_recovery, 0) - coalesce(other_deductions, 0)",
+    "list": true
+   },
+   {
+    "name": "certified_value",
+    "label": "Certified by client",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "certification_gap",
+    "label": "Not certified",
+    "type": "money",
+    "expr": "case when certified_value is null then null else coalesce(this_bill_value, 0) - certified_value end"
+   },
+   {
+    "name": "received",
+    "label": "Received",
+    "type": "money",
+    "default": "0",
+    "list": true
+   }
+  ],
+  "rollups": [
+   {
+    "field": "this_bill_value",
+    "child": "lines",
+    "expr": "coalesce(sum(this_amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "BOQ items",
+    "fields": [
+     {
+      "name": "boq_item_id",
+      "label": "BOQ item",
+      "type": "ref",
+      "ref": "infra.boq_item",
+      "required": true
+     },
+     {
+      "name": "previous_qty",
+      "label": "Up to previous bill",
+      "type": "qty",
+      "default": "0"
+     },
+     {
+      "name": "this_qty",
+      "label": "This bill",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "cumulative_qty",
+      "label": "Cumulative",
+      "type": "qty",
+      "expr": "coalesce(previous_qty, 0) + this_qty"
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money",
+      "help": "Taken from the BOQ if left blank"
+     },
+     {
+      "name": "this_amount",
+      "label": "This bill amount",
+      "type": "money",
+      "expr": "round(this_qty * rate, 2)"
+     }
+    ],
+    "key": "infra.ra_bill.lines",
+    "table": "infra_ra_bill_lines"
+   }
+  ],
+  "posting": {
+   "voucher": "sales",
+   "party": "$client",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "@party",
+     "amount": "net_payable"
+    },
+    {
+     "side": "Dr",
+     "ledger": "RETENTION_RECEIVABLE",
+     "amount": "retention"
+    },
+    {
+     "side": "Dr",
+     "ledger": "SECURITY_DEPOSIT_RECEIVABLE",
+     "amount": "security_deposit"
+    },
+    {
+     "side": "Dr",
+     "ledger": "TDS_RECEIVABLE",
+     "amount": "income_tax_tds"
+    },
+    {
+     "side": "Dr",
+     "ledger": "GST_TDS_RECEIVABLE",
+     "amount": "gst_tds"
+    },
+    {
+     "side": "Dr",
+     "ledger": "LABOUR_CESS",
+     "amount": "labour_cess"
+    },
+    {
+     "side": "Dr",
+     "ledger": "MOBILISATION_ADVANCE",
+     "amount": "mobilisation_recovery"
+    },
+    {
+     "side": "Dr",
+     "ledger": "MATERIAL_RECOVERY",
+     "amount": "material_recovery"
+    },
+    {
+     "side": "Dr",
+     "ledger": "OTHER_DEDUCTIONS",
+     "amount": "other_deductions"
+    },
+    {
+     "side": "Cr",
+     "ledger": "CONTRACT_REVENUE",
+     "amount": "this_bill_value"
+    },
+    {
+     "side": "Cr",
+     "ledger": "GST_OUTPUT",
+     "amount": "gst_amount"
+    }
+   ]
+  },
+  "module": "infra",
+  "table": "infra_ra_bill",
+  "plural": "RA bills"
+ },
+ {
+  "key": "infra.attendance",
+  "feature": "infra.labour_attendance",
+  "label": "Labour attendance",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "users",
+  "title": "worker_name",
+  "description": "Supervisor marks workers with a face photo inside the site geofence (works offline).",
+  "fields": [
+   {
+    "name": "worker_name",
+    "label": "Worker",
+    "type": "text",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "worker_code",
+    "label": "Worker code",
+    "type": "text"
+   },
+   {
+    "name": "trade",
+    "label": "Trade",
+    "type": "select",
+    "options": [
+     "mason",
+     "helper",
+     "carpenter",
+     "bar_bender",
+     "electrician",
+     "plumber",
+     "painter",
+     "welder",
+     "operator",
+     "driver",
+     "supervisor",
+     "other"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "contractor_id",
+    "label": "Contractor",
+    "type": "ref",
+    "ref": "party",
+    "quick": true
+   },
+   {
+    "name": "mark",
+    "label": "Attendance",
+    "type": "select",
+    "options": [
+     "present",
+     "half_day",
+     "absent"
+    ],
+    "default": "present",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "in_time",
+    "label": "In",
+    "type": "datetime",
+    "default": "now()"
+   },
+   {
+    "name": "out_time",
+    "label": "Out",
+    "type": "datetime"
+   },
+   {
+    "name": "ot_hours",
+    "label": "OT hours",
+    "type": "number",
+    "default": "0"
+   },
+   {
+    "name": "face_photo",
+    "label": "Face photo",
+    "type": "photo",
+    "quick": true
+   },
+   {
+    "name": "inside_geofence",
+    "label": "Inside site boundary",
+    "type": "bool"
+   },
+   {
+    "name": "wage_rate",
+    "label": "Daily wage",
+    "type": "money",
+    "sensitive": "rates"
+   }
+  ],
+  "module": "infra",
+  "table": "infra_attendance",
+  "plural": "Labour attendances",
+  "children": []
+ },
+ {
+  "key": "infra.material_request",
+  "feature": "infra.material_request",
+  "label": "Site material request",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "MR/{LOC}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "package-plus",
+  "fields": [
+   {
+    "name": "project_id",
+    "label": "Project",
+    "type": "ref",
+    "ref": "infra.project",
+    "required": true
+   },
+   {
+    "name": "required_by",
+    "label": "Needed by",
+    "type": "date",
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "fulfilment",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "pending",
+     "transfer_sent",
+     "indent_raised",
+     "received",
+     "partly"
+    ],
+    "default": "pending",
+    "list": true
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "boq_item_id",
+      "label": "For BOQ item",
+      "type": "ref",
+      "ref": "infra.boq_item"
+     },
+     {
+      "name": "received_qty",
+      "label": "Received",
+      "type": "qty",
+      "default": "0"
+     }
+    ],
+    "key": "infra.material_request.lines",
+    "table": "infra_material_request_lines"
+   }
+  ],
+  "module": "infra",
+  "table": "infra_material_request",
+  "plural": "Site material requests"
+ },
+ {
+  "key": "infra.subcon_bill",
+  "feature": "infra.subcontractor",
+  "label": "Sub-contractor bill",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "SB/{LOC}/{SEQ:4}",
+  "dated": true,
+  "workflow": true,
+  "amount": "net_payable",
+  "fields": [
+   {
+    "name": "project_id",
+    "label": "Project",
+    "type": "ref",
+    "ref": "infra.project",
+    "required": true
+   },
+   {
+    "name": "party_id",
+    "label": "Sub-contractor",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "gross",
+    "label": "Work value",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "material_supplied",
+    "label": "Our material used",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "advance_recovery",
+    "label": "Advance recovery",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "retention",
+    "label": "Retention",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "tds",
+    "label": "TDS",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "net_payable",
+    "label": "Net payable",
+    "type": "money",
+    "expr": "coalesce(gross, 0) - coalesce(material_supplied, 0) - coalesce(advance_recovery, 0) - coalesce(retention, 0) - coalesce(tds, 0)",
+    "list": true
+   }
+  ],
+  "rollups": [
+   {
+    "field": "gross",
+    "child": "lines",
+    "expr": "coalesce(sum(amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Work",
+    "fields": [
+     {
+      "name": "boq_item_id",
+      "label": "BOQ item",
+      "type": "ref",
+      "ref": "infra.boq_item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "rate",
+      "label": "Agreed rate",
+      "type": "money",
+      "required": true
+     },
+     {
+      "name": "amount",
+      "label": "Amount",
+      "type": "money",
+      "expr": "round(qty * rate, 2)"
+     }
+    ],
+    "key": "infra.subcon_bill.lines",
+    "table": "infra_subcon_bill_lines"
+   }
+  ],
+  "posting": {
+   "voucher": "purchase",
+   "party": "party_id",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "SUBCONTRACT_EXPENSE",
+     "amount": "gross"
+    },
+    {
+     "side": "Cr",
+     "ledger": "MATERIAL_RECOVERY",
+     "amount": "material_supplied"
+    },
+    {
+     "side": "Cr",
+     "ledger": "RETENTION_PAYABLE",
+     "amount": "retention"
+    },
+    {
+     "side": "Cr",
+     "ledger": "TDS_PAYABLE",
+     "amount": "tds"
+    },
+    {
+     "side": "Cr",
+     "ledger": "@party",
+     "amount": "net_payable"
+    },
+    {
+     "side": "Cr",
+     "ledger": "ADVANCE_TO_SUPPLIERS",
+     "amount": "advance_recovery"
+    }
+   ]
+  },
+  "module": "infra",
+  "table": "infra_subcon_bill",
+  "plural": "Sub-contractor bills"
+ },
+ {
+  "key": "bunk.tank",
+  "feature": "bunk.tanks",
+  "label": "Tank",
+  "kind": "master",
+  "scope": "location",
+  "title": "name",
+  "fields": [
+   {
+    "name": "name",
+    "label": "Tank",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "product",
+    "label": "Product",
+    "type": "select",
+    "options": [
+     "MS",
+     "HSD",
+     "XP95",
+     "XG",
+     "CNG"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "capacity_l",
+    "label": "Capacity",
+    "type": "qty",
+    "unit": "L",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "dead_stock_l",
+    "label": "Dead stock",
+    "type": "qty",
+    "unit": "L",
+    "default": "0"
+   },
+   {
+    "name": "calibration_chart",
+    "label": "Calibration chart",
+    "type": "json",
+    "help": "[[dip_mm, litres], ...] from the tank's calibration certificate"
+   },
+   {
+    "name": "calibration_valid_till",
+    "label": "Calibration valid till",
+    "type": "date"
+   },
+   {
+    "name": "variance_tolerance_pct",
+    "label": "Allowed variance %",
+    "type": "percent",
+    "default": "0.5"
+   },
+   {
+    "name": "is_active",
+    "label": "In use",
+    "type": "bool",
+    "default": "true"
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_tank",
+  "plural": "Tanks",
+  "children": []
+ },
+ {
+  "key": "bunk.nozzle",
+  "feature": "bunk.tanks.nozzles",
+  "label": "Nozzle",
+  "kind": "master",
+  "scope": "location",
+  "title": "name",
+  "fields": [
+   {
+    "name": "name",
+    "label": "Nozzle",
+    "type": "text",
+    "required": true,
+    "list": true,
+    "help": "e.g. DU1-N2"
+   },
+   {
+    "name": "dispenser",
+    "label": "Dispensing unit",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "tank_id",
+    "label": "Tank",
+    "type": "ref",
+    "ref": "bunk.tank",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "current_totaliser",
+    "label": "Current totaliser",
+    "type": "qty",
+    "unit": "L"
+   },
+   {
+    "name": "stamping_valid_till",
+    "label": "W&M stamping valid till",
+    "type": "date"
+   },
+   {
+    "name": "is_active",
+    "label": "In use",
+    "type": "bool",
+    "default": "true"
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_nozzle",
+  "plural": "Nozzles",
+  "children": []
+ },
+ {
+  "key": "bunk.price",
+  "feature": "bunk.prices",
+  "label": "Selling price",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "title": "product",
+  "description": "Daily retail selling price per product; changes take effect at the given time.",
+  "fields": [
+   {
+    "name": "product",
+    "label": "Product",
+    "type": "select",
+    "options": [
+     "MS",
+     "HSD",
+     "XP95",
+     "XG",
+     "CNG"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "rsp",
+    "label": "Rate per litre",
+    "type": "money",
+    "required": true,
+    "list": true,
+    "check": "rsp > 0"
+   },
+   {
+    "name": "effective_from",
+    "label": "Effective from",
+    "type": "datetime",
+    "required": true,
+    "list": true
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_price",
+  "plural": "Selling prices",
+  "children": []
+ },
+ {
+  "key": "bunk.shift",
+  "feature": "bunk.shift",
+  "label": "Shift",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "SH/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "fuel",
+  "amount": "expected_collection",
+  "description": "Open with opening readings, close with closing readings and cash. Sale = closing − opening − testing.",
+  "fields": [
+   {
+    "name": "shift_name",
+    "label": "Shift",
+    "type": "select",
+    "options": [
+     "morning",
+     "afternoon",
+     "night",
+     "full_day"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "attendant_id",
+    "label": "Attendant",
+    "type": "ref",
+    "ref": "app_user",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "opened_at",
+    "label": "Opened at",
+    "type": "datetime",
+    "default": "now()"
+   },
+   {
+    "name": "closed_at",
+    "label": "Closed at",
+    "type": "datetime"
+   },
+   {
+    "name": "total_litres",
+    "label": "Litres sold",
+    "type": "qty",
+    "unit": "L",
+    "list": true
+   },
+   {
+    "name": "sale_value",
+    "label": "Sale value",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "credit_sales",
+    "label": "Credit sales",
+    "type": "money"
+   },
+   {
+    "name": "internal_issues",
+    "label": "Fuel to group vehicles",
+    "type": "money"
+   },
+   {
+    "name": "upi_pos",
+    "label": "UPI / card",
+    "type": "money"
+   },
+   {
+    "name": "fleet_card",
+    "label": "Fleet cards",
+    "type": "money"
+   },
+   {
+    "name": "cash_counted",
+    "label": "Cash counted",
+    "type": "money",
+    "quick": true
+   },
+   {
+    "name": "denominations",
+    "label": "Cash denominations",
+    "type": "json",
+    "help": "{\"500\": 20, \"200\": 15, ...}"
+   },
+   {
+    "name": "expenses_paid",
+    "label": "Expenses paid from cash",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "expected_collection",
+    "label": "Expected cash",
+    "type": "money",
+    "expr": "coalesce(sale_value, 0) - coalesce(credit_sales, 0) - coalesce(internal_issues, 0) - coalesce(upi_pos, 0) - coalesce(fleet_card, 0) - coalesce(expenses_paid, 0)"
+   },
+   {
+    "name": "short_excess",
+    "label": "Short (−) / excess (+)",
+    "type": "money",
+    "expr": "coalesce(cash_counted, 0) - (coalesce(sale_value, 0) - coalesce(credit_sales, 0) - coalesce(internal_issues, 0) - coalesce(upi_pos, 0) - coalesce(fleet_card, 0) - coalesce(expenses_paid, 0))",
+    "list": true
+   },
+   {
+    "name": "remarks",
+    "label": "Remarks",
+    "type": "longtext"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "total_litres",
+    "child": "readings",
+    "expr": "coalesce(sum(sale_litres), 0)"
+   },
+   {
+    "field": "sale_value",
+    "child": "readings",
+    "expr": "coalesce(sum(sale_value), 0)"
+   },
+   {
+    "field": "credit_sales",
+    "child": "credit",
+    "expr": "coalesce(sum(amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "readings",
+    "label": "Nozzle readings",
+    "fields": [
+     {
+      "name": "nozzle_id",
+      "label": "Nozzle",
+      "type": "ref",
+      "ref": "bunk.nozzle",
+      "required": true
+     },
+     {
+      "name": "product",
+      "label": "Product",
+      "type": "select",
+      "options": [
+       "MS",
+       "HSD",
+       "XP95",
+       "XG",
+       "CNG"
+      ]
+     },
+     {
+      "name": "opening",
+      "label": "Opening",
+      "type": "qty",
+      "unit": "L",
+      "required": true
+     },
+     {
+      "name": "closing",
+      "label": "Closing",
+      "type": "qty",
+      "unit": "L"
+     },
+     {
+      "name": "testing",
+      "label": "Testing (returned to tank)",
+      "type": "qty",
+      "unit": "L",
+      "default": "0"
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money",
+      "sensitive": "rates"
+     },
+     {
+      "name": "closing_photo",
+      "label": "Totaliser photo",
+      "type": "photo"
+     },
+     {
+      "name": "sale_litres",
+      "label": "Sale",
+      "type": "qty",
+      "expr": "case when closing is null then 0 else closing - opening - coalesce(testing, 0) end"
+     },
+     {
+      "name": "sale_value",
+      "label": "Value",
+      "type": "money",
+      "expr": "round(case when closing is null then 0 else closing - opening - coalesce(testing, 0) end * coalesce(rate, 0), 2)"
+     }
+    ],
+    "key": "bunk.shift.readings",
+    "table": "bunk_shift_readings"
+   },
+   {
+    "name": "credit",
+    "label": "Credit sales (indent slips)",
+    "fields": [
+     {
+      "name": "party_id",
+      "label": "Customer",
+      "type": "ref",
+      "ref": "party",
+      "required": true
+     },
+     {
+      "name": "vehicle_no",
+      "label": "Vehicle no",
+      "type": "text",
+      "required": true
+     },
+     {
+      "name": "product",
+      "label": "Product",
+      "type": "select",
+      "options": [
+       "MS",
+       "HSD",
+       "XP95",
+       "XG",
+       "CNG",
+       "LUBE"
+      ],
+      "required": true
+     },
+     {
+      "name": "litres",
+      "label": "Litres",
+      "type": "qty",
+      "unit": "L",
+      "required": true
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money"
+     },
+     {
+      "name": "amount",
+      "label": "Amount",
+      "type": "money",
+      "expr": "round(litres * coalesce(rate, 0), 2)"
+     },
+     {
+      "name": "slip_no",
+      "label": "Slip no",
+      "type": "text"
+     },
+     {
+      "name": "slip_photo",
+      "label": "Slip photo",
+      "type": "photo"
+     }
+    ],
+    "key": "bunk.shift.credit",
+    "table": "bunk_shift_credit"
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_shift",
+  "plural": "Shifts"
+ },
+ {
+  "key": "bunk.dip",
+  "feature": "bunk.tanks.daily_dip",
+  "label": "Tank dip",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "ruler",
+  "title": "tank_id",
+  "description": "Morning dip. Litres come from the tank's calibration chart; book vs dip variance is checked.",
+  "fields": [
+   {
+    "name": "tank_id",
+    "label": "Tank",
+    "type": "ref",
+    "ref": "bunk.tank",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "dip_mm",
+    "label": "Dip",
+    "type": "number",
+    "unit": "mm",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "water_mm",
+    "label": "Water dip",
+    "type": "number",
+    "unit": "mm",
+    "default": "0",
+    "quick": true
+   },
+   {
+    "name": "temperature_c",
+    "label": "Temperature",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "name": "density",
+    "label": "Density (hydrometer)",
+    "type": "number",
+    "unit": "kg/m³",
+    "quick": true
+   },
+   {
+    "name": "dip_litres",
+    "label": "Stock by dip",
+    "type": "qty",
+    "unit": "L",
+    "list": true
+   },
+   {
+    "name": "book_litres",
+    "label": "Book stock",
+    "type": "qty",
+    "unit": "L",
+    "list": true
+   },
+   {
+    "name": "variance_litres",
+    "label": "Variance",
+    "type": "qty",
+    "expr": "coalesce(dip_litres, 0) - coalesce(book_litres, 0)",
+    "list": true,
+    "unit": "L"
+   },
+   {
+    "name": "variance_alert",
+    "label": "Beyond tolerance",
+    "type": "bool"
+   },
+   {
+    "name": "dip_rod_photo",
+    "label": "Dip rod photo",
+    "type": "photo"
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_dip",
+  "plural": "Tank dips",
+  "children": []
+ },
+ {
+  "key": "bunk.tanker_receipt",
+  "feature": "bunk.tanker_receipt",
+  "label": "Tanker receipt",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "TR/{LOC}/{FY}/{SEQ:4}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "truck",
+  "amount": "invoice_amount",
+  "description": "Decantation check: invoice qty and density vs actual dips before and after.",
+  "fields": [
+   {
+    "name": "tank_id",
+    "label": "Tank",
+    "type": "ref",
+    "ref": "bunk.tank",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "product",
+    "label": "Product",
+    "type": "select",
+    "options": [
+     "MS",
+     "HSD",
+     "XP95",
+     "XG",
+     "CNG"
+    ],
+    "required": true
+   },
+   {
+    "name": "supplier_id",
+    "label": "Oil company / depot",
+    "type": "ref",
+    "ref": "party",
+    "required": true
+   },
+   {
+    "name": "invoice_no",
+    "label": "Invoice no",
+    "type": "text",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "invoice_litres",
+    "label": "Invoice qty",
+    "type": "qty",
+    "unit": "L",
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "invoice_density",
+    "label": "Invoice density",
+    "type": "number",
+    "unit": "kg/m³"
+   },
+   {
+    "name": "invoice_amount",
+    "label": "Invoice amount",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "tanker_no",
+    "label": "Tanker no",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "seal_numbers",
+    "label": "Seal numbers",
+    "type": "text"
+   },
+   {
+    "name": "observed_density",
+    "label": "Density at receipt",
+    "type": "number",
+    "unit": "kg/m³",
+    "quick": true
+   },
+   {
+    "name": "dip_before_mm",
+    "label": "Dip before",
+    "type": "number",
+    "unit": "mm"
+   },
+   {
+    "name": "dip_after_mm",
+    "label": "Dip after",
+    "type": "number",
+    "unit": "mm"
+   },
+   {
+    "name": "received_litres",
+    "label": "Received (by dip)",
+    "type": "qty",
+    "unit": "L",
+    "list": true
+   },
+   {
+    "name": "short_litres",
+    "label": "Short (−) / excess (+)",
+    "type": "qty",
+    "expr": "coalesce(received_litres, 0) - invoice_litres",
+    "list": true
+   },
+   {
+    "name": "density_diff",
+    "label": "Density difference",
+    "type": "number",
+    "expr": "coalesce(observed_density, 0) - coalesce(invoice_density, 0)"
+   },
+   {
+    "name": "decant_start",
+    "label": "Decanting started",
+    "type": "datetime"
+   },
+   {
+    "name": "decant_end",
+    "label": "Decanting ended",
+    "type": "datetime"
+   },
+   {
+    "name": "photos",
+    "label": "Photos (seals, invoice, dips)",
+    "type": "photos"
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_tanker_receipt",
+  "plural": "Tanker receipts",
+  "children": []
+ },
+ {
+  "key": "bunk.internal_issue",
+  "feature": "bunk.internal_fuel_issue",
+  "label": "Fuel to group vehicle",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "FI/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "fuel",
+  "amount": "amount",
+  "description": "One entry: bunk stock goes down, the vehicle's fuel log goes up, and an inter-company bill is raised.",
+  "fields": [
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle",
+    "type": "ref",
+    "ref": "vehicle",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "nozzle_id",
+    "label": "Nozzle",
+    "type": "ref",
+    "ref": "bunk.nozzle",
+    "quick": true
+   },
+   {
+    "name": "product",
+    "label": "Product",
+    "type": "select",
+    "options": [
+     "MS",
+     "HSD",
+     "XP95",
+     "XG",
+     "CNG"
+    ],
+    "required": true,
+    "default": "HSD"
+   },
+   {
+    "name": "litres",
+    "label": "Litres",
+    "type": "qty",
+    "unit": "L",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "litres > 0"
+   },
+   {
+    "name": "transfer_rate",
+    "label": "Transfer rate",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "expr": "round(litres * coalesce(transfer_rate, 0), 2)",
+    "list": true,
+    "sensitive": "rates"
+   },
+   {
+    "name": "odometer",
+    "label": "Odometer / hour meter",
+    "type": "number",
+    "quick": true
+   },
+   {
+    "name": "meter_photo",
+    "label": "Meter photo",
+    "type": "photo",
+    "quick": true
+   },
+   {
+    "name": "driver_id",
+    "label": "Driver",
+    "type": "ref",
+    "ref": "app_user"
+   },
+   {
+    "name": "to_company_id",
+    "label": "Billed to company",
+    "type": "ref",
+    "ref": "company"
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_internal_issue",
+  "plural": "Fuel to group vehicles",
+  "children": []
+ },
+ {
+  "key": "bunk.lube_sale",
+  "feature": "bunk.lubes",
+  "label": "Lube sale",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "LB/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "droplet",
+  "amount": "total",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Customer (if credit)",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "payment_mode",
+    "label": "Paid by",
+    "type": "select",
+    "options": [
+     "cash",
+     "upi",
+     "card",
+     "credit"
+    ],
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "total",
+    "label": "Total",
+    "type": "money",
+    "list": true
+   }
+  ],
+  "rollups": [
+   {
+    "field": "total",
+    "child": "lines",
+    "expr": "coalesce(sum(amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Lube",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money",
+      "required": true
+     },
+     {
+      "name": "amount",
+      "label": "Amount",
+      "type": "money",
+      "expr": "round(qty * rate, 2)"
+     }
+    ],
+    "key": "bunk.lube_sale.lines",
+    "table": "bunk_lube_sale_lines"
+   }
+  ],
+  "stock": [
+   {
+    "child": "lines",
+    "item": "item_id",
+    "qty": "qty",
+    "dir": "out",
+    "rate": "rate"
+   }
+  ],
+  "module": "bunk",
+  "table": "bunk_lube_sale",
+  "plural": "Lube sales"
+ },
+ {
+  "key": "fleet.trip",
+  "feature": "fleet.trips",
+  "label": "Trip",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "TP/{LOC}/{FY}/{SEQ:6}",
+  "dated": true,
+  "mobile": true,
+  "icon": "route",
+  "title": "doc_no",
+  "fields": [
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle",
+    "type": "ref",
+    "ref": "vehicle",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "driver_id",
+    "label": "Driver",
+    "type": "ref",
+    "ref": "app_user",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "purpose",
+    "label": "Purpose",
+    "type": "select",
+    "options": [
+     "rmc_delivery",
+     "material_haul",
+     "hot_mix_delivery",
+     "bricks_delivery",
+     "site_shifting",
+     "staff",
+     "fuel",
+     "service",
+     "hire"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "from_place",
+    "label": "From",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "to_place",
+    "label": "To",
+    "type": "text",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "linked_entity",
+    "label": "Linked document type",
+    "type": "text"
+   },
+   {
+    "name": "linked_id",
+    "label": "Linked document",
+    "type": "text"
+   },
+   {
+    "name": "start_at",
+    "label": "Start",
+    "type": "datetime",
+    "default": "now()"
+   },
+   {
+    "name": "end_at",
+    "label": "End",
+    "type": "datetime"
+   },
+   {
+    "name": "start_odometer",
+    "label": "Start odometer",
+    "type": "number",
+    "unit": "km"
+   },
+   {
+    "name": "end_odometer",
+    "label": "End odometer",
+    "type": "number",
+    "unit": "km"
+   },
+   {
+    "name": "odometer_km",
+    "label": "Km (odometer)",
+    "type": "number",
+    "expr": "case when end_odometer is null then null else end_odometer - start_odometer end",
+    "list": true
+   },
+   {
+    "name": "gps_km",
+    "label": "Km (GPS)",
+    "type": "number",
+    "list": true
+   },
+   {
+    "name": "load_qty",
+    "label": "Load",
+    "type": "qty"
+   },
+   {
+    "name": "load_unit",
+    "label": "Load unit",
+    "type": "text"
+   },
+   {
+    "name": "toll",
+    "label": "Toll",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "driver_bata",
+    "label": "Driver bata",
+    "type": "money",
+    "default": "0"
+   },
+   {
+    "name": "revenue",
+    "label": "Revenue",
+    "type": "money",
+    "default": "0",
+    "sensitive": "rates"
+   }
+  ],
+  "module": "fleet",
+  "table": "fleet_trip",
+  "plural": "Trips",
+  "children": []
+ },
+ {
+  "key": "fleet.fuel",
+  "feature": "fleet.fuel_log",
+  "label": "Fuel fill",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "fuel",
+  "title": "vehicle_id",
+  "description": "Every fill. Mileage vs norm is worked out against the previous fill.",
+  "fields": [
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle",
+    "type": "ref",
+    "ref": "vehicle",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "source",
+    "label": "Filled at",
+    "type": "select",
+    "options": [
+     "own_bunk",
+     "outside_bunk",
+     "site_tanker"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "litres",
+    "label": "Litres",
+    "type": "qty",
+    "unit": "L",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "litres > 0"
+   },
+   {
+    "name": "rate",
+    "label": "Rate",
+    "type": "money",
+    "sensitive": "rates"
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "expr": "round(litres * coalesce(rate, 0), 2)",
+    "sensitive": "rates"
+   },
+   {
+    "name": "odometer",
+    "label": "Odometer",
+    "type": "number",
+    "unit": "km",
+    "quick": true
+   },
+   {
+    "name": "hour_meter",
+    "label": "Hour meter",
+    "type": "number",
+    "unit": "hr"
+   },
+   {
+    "name": "meter_photo",
+    "label": "Meter photo",
+    "type": "photo",
+    "quick": true
+   },
+   {
+    "name": "bill_photo",
+    "label": "Bill photo",
+    "type": "photo"
+   },
+   {
+    "name": "km_since_last",
+    "label": "Km since last fill",
+    "type": "number"
+   },
+   {
+    "name": "hours_since_last",
+    "label": "Hours since last fill",
+    "type": "number"
+   },
+   {
+    "name": "km_per_l",
+    "label": "Mileage",
+    "type": "number",
+    "unit": "km/L",
+    "list": true
+   },
+   {
+    "name": "l_per_hour",
+    "label": "Consumption",
+    "type": "number",
+    "unit": "L/hr"
+   },
+   {
+    "name": "variance_pct",
+    "label": "Worse than norm by",
+    "type": "number",
+    "unit": "%",
+    "list": true
+   },
+   {
+    "name": "sensor_rise_l",
+    "label": "Fuel sensor rise",
+    "type": "number",
+    "unit": "L"
+   },
+   {
+    "name": "mismatch_alert",
+    "label": "Mismatch alert",
+    "type": "bool",
+    "list": true
+   },
+   {
+    "name": "bunk_issue_id",
+    "label": "Bunk issue",
+    "type": "text"
+   }
+  ],
+  "module": "fleet",
+  "table": "fleet_fuel",
+  "plural": "Fuel fills",
+  "children": []
+ },
+ {
+  "key": "fleet.service_job",
+  "feature": "fleet.service",
+  "label": "Service job",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "JC/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "wrench",
+  "amount": "total_cost",
+  "fields": [
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle",
+    "type": "ref",
+    "ref": "vehicle",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "job_type",
+    "label": "Type",
+    "type": "select",
+    "options": [
+     "scheduled_service",
+     "breakdown",
+     "accident",
+     "tyre",
+     "battery",
+     "electrical",
+     "body",
+     "other"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "complaint",
+    "label": "Complaint",
+    "type": "longtext",
+    "quick": true
+   },
+   {
+    "name": "odometer",
+    "label": "Odometer",
+    "type": "number"
+   },
+   {
+    "name": "hour_meter",
+    "label": "Hour meter",
+    "type": "number"
+   },
+   {
+    "name": "vendor_id",
+    "label": "Workshop / mechanic",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "down_from",
+    "label": "Off road from",
+    "type": "datetime"
+   },
+   {
+    "name": "down_to",
+    "label": "Back on road",
+    "type": "datetime"
+   },
+   {
+    "name": "downtime_hours",
+    "label": "Downtime",
+    "type": "number",
+    "expr": "case when down_to is null or down_from is null then null else round(extract(epoch from down_to - down_from) / 3600, 1) end",
+    "unit": "hr",
+    "list": true
+   },
+   {
+    "name": "labour_cost",
+    "label": "Labour",
+    "type": "money",
+    "default": "0",
+    "sensitive": "cost"
+   },
+   {
+    "name": "parts_cost",
+    "label": "Parts",
+    "type": "money",
+    "default": "0",
+    "sensitive": "cost"
+   },
+   {
+    "name": "total_cost",
+    "label": "Total",
+    "type": "money",
+    "expr": "coalesce(labour_cost, 0) + coalesce(parts_cost, 0)",
+    "sensitive": "cost",
+    "list": true
+   },
+   {
+    "name": "photos",
+    "label": "Photos",
+    "type": "photos"
+   },
+   {
+    "name": "next_service_odometer",
+    "label": "Next service at (km)",
+    "type": "number"
+   },
+   {
+    "name": "next_service_date",
+    "label": "Next service by",
+    "type": "date"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "parts_cost",
+    "child": "parts",
+    "expr": "coalesce(sum(amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "parts",
+    "label": "Parts used",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Part",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money"
+     },
+     {
+      "name": "amount",
+      "label": "Amount",
+      "type": "money",
+      "expr": "round(qty * coalesce(rate, 0), 2)"
+     },
+     {
+      "name": "serial_no",
+      "label": "Serial no",
+      "type": "text"
+     }
+    ],
+    "key": "fleet.service_job.parts",
+    "table": "fleet_service_job_parts"
+   }
+  ],
+  "stock": [
+   {
+    "child": "parts",
+    "item": "item_id",
+    "qty": "qty",
+    "dir": "out",
+    "rate": "rate",
+    "when": "approved"
+   }
+  ],
+  "module": "fleet",
+  "table": "fleet_service_job",
+  "plural": "Service jobs"
+ },
+ {
+  "key": "fleet.tyre",
+  "feature": "fleet.tyres",
+  "label": "Tyre",
+  "kind": "master",
+  "scope": "company",
+  "title": "serial_no",
+  "fields": [
+   {
+    "name": "serial_no",
+    "label": "Serial no",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "size",
+    "label": "Size",
+    "type": "text"
+   },
+   {
+    "name": "tyre_type",
+    "label": "Type",
+    "type": "select",
+    "options": [
+     "new",
+     "retread"
+    ],
+    "default": "new"
+   },
+   {
+    "name": "purchase_date",
+    "label": "Bought on",
+    "type": "date"
+   },
+   {
+    "name": "cost",
+    "label": "Cost",
+    "type": "money",
+    "sensitive": "cost"
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Fitted on",
+    "type": "ref",
+    "ref": "vehicle",
+    "list": true
+   },
+   {
+    "name": "position",
+    "label": "Position",
+    "type": "text",
+    "list": true,
+    "help": "e.g. FL, FR, R1-L-out"
+   },
+   {
+    "name": "fitted_odometer",
+    "label": "Fitted at km",
+    "type": "number"
+   },
+   {
+    "name": "total_km",
+    "label": "Total km run",
+    "type": "number",
+    "list": true
+   },
+   {
+    "name": "retreads",
+    "label": "Retreads",
+    "type": "int",
+    "default": "0"
+   },
+   {
+    "name": "tyre_status",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "in_store",
+     "fitted",
+     "retreading",
+     "scrapped"
+    ],
+    "default": "in_store",
+    "list": true
+   },
+   {
+    "name": "scrap_reason",
+    "label": "Scrap reason",
+    "type": "text"
+   }
+  ],
+  "unique": [
+   [
+    "company_id",
+    "serial_no"
+   ]
+  ],
+  "module": "fleet",
+  "table": "fleet_tyre",
+  "plural": "Tyres",
+  "children": []
+ },
+ {
+  "key": "fleet.machine_log",
+  "feature": "fleet.machines_hours",
+  "label": "Machine log",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "clock",
+  "title": "vehicle_id",
+  "description": "Daily log for JCBs, rollers, pavers: hours worked, idle, fuel, operator.",
+  "fields": [
+   {
+    "name": "vehicle_id",
+    "label": "Machine",
+    "type": "ref",
+    "ref": "vehicle",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "operator_id",
+    "label": "Operator",
+    "type": "ref",
+    "ref": "app_user",
+    "quick": true
+   },
+   {
+    "name": "start_hours",
+    "label": "Start hour meter",
+    "type": "number",
+    "quick": true
+   },
+   {
+    "name": "end_hours",
+    "label": "End hour meter",
+    "type": "number",
+    "quick": true
+   },
+   {
+    "name": "hours_worked",
+    "label": "Hours",
+    "type": "number",
+    "expr": "case when end_hours is null then null else end_hours - start_hours end",
+    "list": true
+   },
+   {
+    "name": "idle_hours",
+    "label": "Idle hours",
+    "type": "number",
+    "default": "0"
+   },
+   {
+    "name": "fuel_l",
+    "label": "Fuel",
+    "type": "qty",
+    "unit": "L"
+   },
+   {
+    "name": "work_done",
+    "label": "Work done",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "hire",
+    "label": "Hire",
+    "type": "select",
+    "options": [
+     "own_use",
+     "hired_out",
+     "hired_in"
+    ],
+    "default": "own_use"
+   },
+   {
+    "name": "hire_party_id",
+    "label": "Hire party",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "hire_rate_per_hour",
+    "label": "Hire rate / hr",
+    "type": "money",
+    "sensitive": "rates"
+   }
+  ],
+  "module": "fleet",
+  "table": "fleet_machine_log",
+  "plural": "Machine logs",
+  "children": []
+ },
+ {
+  "key": "purchase.indent",
+  "feature": "purchase.indent",
+  "label": "Indent",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "IN/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "clipboard",
+  "description": "Request from a site, plant or bunk. Central buying groups approved indents into POs.",
+  "fields": [
+   {
+    "name": "priority",
+    "label": "How urgent",
+    "type": "select",
+    "options": [
+     "normal",
+     "urgent",
+     "breakdown"
+    ],
+    "default": "normal",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "required_by",
+    "label": "Needed by",
+    "type": "date",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "purpose",
+    "label": "For",
+    "type": "text",
+    "quick": true,
+    "help": "BOQ item, vehicle, plant maintenance..."
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle (spares)",
+    "type": "ref",
+    "ref": "vehicle"
+   },
+   {
+    "name": "fulfilment",
+    "label": "Fulfilled by",
+    "type": "select",
+    "options": [
+     "pending",
+     "transfer",
+     "po",
+     "partly",
+     "closed"
+    ],
+    "default": "pending",
+    "list": true
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true,
+      "check": "qty > 0"
+     },
+     {
+      "name": "uom",
+      "label": "Unit",
+      "type": "text"
+     },
+     {
+      "name": "stock_at_location",
+      "label": "Stock here now",
+      "type": "qty"
+     },
+     {
+      "name": "photo",
+      "label": "Photo (spares)",
+      "type": "photo"
+     },
+     {
+      "name": "remarks",
+      "label": "Remarks",
+      "type": "text"
+     }
+    ],
+    "key": "purchase.indent.lines",
+    "table": "purchase_indent_lines"
+   }
+  ],
+  "module": "purchase",
+  "table": "purchase_indent",
+  "plural": "Indents"
+ },
+ {
+  "key": "purchase.po",
+  "feature": "purchase.po",
+  "label": "Purchase order",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "PO/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "amount": "grand_total",
+  "title": "doc_no",
+  "description": "Every line shows the last rates paid across all group companies.",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Vendor",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "indent_id",
+    "label": "From indent",
+    "type": "ref",
+    "ref": "purchase.indent"
+   },
+   {
+    "name": "delivery_by",
+    "label": "Deliver by",
+    "type": "date",
+    "list": true
+   },
+   {
+    "name": "delivery_address",
+    "label": "Deliver to",
+    "type": "longtext"
+   },
+   {
+    "name": "freight",
+    "label": "Freight",
+    "type": "select",
+    "options": [
+     "vendor",
+     "ours",
+     "extra_at_actuals"
+    ],
+    "default": "vendor"
+   },
+   {
+    "name": "payment_days",
+    "label": "Payment terms (days)",
+    "type": "int",
+    "default": "30"
+   },
+   {
+    "name": "rate_contract_ref",
+    "label": "Rate contract",
+    "type": "text"
+   },
+   {
+    "name": "taxable_value",
+    "label": "Taxable",
+    "type": "money"
+   },
+   {
+    "name": "gst_amount",
+    "label": "GST",
+    "type": "money"
+   },
+   {
+    "name": "grand_total",
+    "label": "Total",
+    "type": "money",
+    "expr": "taxable_value + gst_amount",
+    "list": true
+   },
+   {
+    "name": "receipt_status",
+    "label": "Received",
+    "type": "select",
+    "options": [
+     "pending",
+     "partly",
+     "complete",
+     "short_closed"
+    ],
+    "default": "pending",
+    "list": true
+   },
+   {
+    "name": "terms",
+    "label": "Terms",
+    "type": "longtext"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "taxable_value",
+    "child": "lines",
+    "expr": "coalesce(sum(taxable_value), 0)"
+   },
+   {
+    "field": "gst_amount",
+    "child": "lines",
+    "expr": "coalesce(sum(gst_amount), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "description",
+      "label": "Description",
+      "type": "text"
+     },
+     {
+      "name": "hsn_sac",
+      "label": "HSN/SAC",
+      "type": "text"
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true,
+      "check": "qty > 0"
+     },
+     {
+      "name": "uom",
+      "label": "Unit",
+      "type": "text"
+     },
+     {
+      "name": "rate",
+      "label": "Rate",
+      "type": "money",
+      "required": true,
+      "sensitive": "rates"
+     },
+     {
+      "name": "discount_pct",
+      "label": "Discount %",
+      "type": "percent",
+      "default": "0"
+     },
+     {
+      "name": "gst_rate",
+      "label": "GST %",
+      "type": "percent",
+      "default": "18"
+     },
+     {
+      "name": "taxable_value",
+      "label": "Taxable",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100), 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "gst_amount",
+      "label": "GST",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * coalesce(gst_rate, 0) / 100, 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "line_total",
+      "label": "Total",
+      "type": "money",
+      "expr": "round(qty * rate * (1 - coalesce(discount_pct, 0) / 100) * (1 + coalesce(gst_rate, 0) / 100), 2)",
+      "sensitive": "rates"
+     },
+     {
+      "name": "received_qty",
+      "label": "Received so far",
+      "type": "qty",
+      "default": "0"
+     },
+     {
+      "name": "last_rate",
+      "label": "Last rate paid",
+      "type": "money",
+      "sensitive": "rates"
+     }
+    ],
+    "key": "purchase.po.lines",
+    "table": "purchase_po_lines"
+   }
+  ],
+  "module": "purchase",
+  "table": "purchase_po",
+  "plural": "Purchase orders"
+ },
+ {
+  "key": "purchase.grn",
+  "feature": "purchase.grn",
+  "label": "Goods receipt",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "GR/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "package-check",
+  "title": "doc_no",
+  "description": "What actually arrived. Weighbridge net fills the qty for bulk materials. Stock goes up here.",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Vendor",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "po_id",
+    "label": "PO",
+    "type": "ref",
+    "ref": "purchase.po",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "vendor_challan_no",
+    "label": "Vendor challan / invoice no",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "vehicle_no",
+    "label": "Vehicle no",
+    "type": "text"
+   },
+   {
+    "name": "weighbridge_ticket_id",
+    "label": "Weighbridge ticket",
+    "type": "ref",
+    "ref": "weighbridge.ticket"
+   },
+   {
+    "name": "qc_status",
+    "label": "Quality check",
+    "type": "select",
+    "options": [
+     "not_required",
+     "pending",
+     "accepted",
+     "partly_rejected",
+     "rejected"
+    ],
+    "default": "not_required",
+    "list": true
+   },
+   {
+    "name": "photos",
+    "label": "Photos (material, challan)",
+    "type": "photos",
+    "quick": true
+   },
+   {
+    "name": "value",
+    "label": "Value",
+    "type": "money",
+    "sensitive": "rates"
+   }
+  ],
+  "rollups": [
+   {
+    "field": "value",
+    "child": "lines",
+    "expr": "coalesce(sum(accepted_qty * coalesce(rate, 0)), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "challan_qty",
+      "label": "Vendor's qty",
+      "type": "qty"
+     },
+     {
+      "name": "received_qty",
+      "label": "Received",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "rejected_qty",
+      "label": "Rejected",
+      "type": "qty",
+      "default": "0"
+     },
+     {
+      "name": "accepted_qty",
+      "label": "Accepted",
+      "type": "qty",
+      "expr": "received_qty - coalesce(rejected_qty, 0)"
+     },
+     {
+      "name": "short_qty",
+      "label": "Short",
+      "type": "qty",
+      "expr": "case when challan_qty is null then 0 else challan_qty - received_qty end"
+     },
+     {
+      "name": "rate",
+      "label": "PO rate",
+      "type": "money",
+      "sensitive": "rates"
+     },
+     {
+      "name": "batch_no",
+      "label": "Batch",
+      "type": "text"
+     },
+     {
+      "name": "reject_reason",
+      "label": "Reject reason",
+      "type": "text"
+     }
+    ],
+    "key": "purchase.grn.lines",
+    "table": "purchase_grn_lines"
+   }
+  ],
+  "stock": [
+   {
+    "child": "lines",
+    "item": "item_id",
+    "qty": "accepted_qty",
+    "dir": "in",
+    "rate": "rate"
+   }
+  ],
+  "module": "purchase",
+  "table": "purchase_grn",
+  "plural": "Goods receipts"
+ },
+ {
+  "key": "purchase.transfer",
+  "feature": "purchase.stock.transfers",
+  "label": "Stock transfer",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "ST/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "arrow-left-right",
+  "description": "Move stock between locations. Between group companies it becomes a sale and a purchase automatically.",
+  "fields": [
+   {
+    "name": "to_location_id",
+    "label": "To location",
+    "type": "ref",
+    "ref": "location",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "to_company_id",
+    "label": "To company (if another group company)",
+    "type": "ref",
+    "ref": "company"
+   },
+   {
+    "name": "vehicle_no",
+    "label": "Vehicle no",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "eway_bill_no",
+    "label": "E-way bill",
+    "type": "text"
+   },
+   {
+    "name": "transit_status",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "in_transit",
+     "received",
+     "partly_received"
+    ],
+    "default": "in_transit",
+    "list": true
+   },
+   {
+    "name": "received_at",
+    "label": "Received at",
+    "type": "datetime"
+   },
+   {
+    "name": "received_by",
+    "label": "Received by",
+    "type": "ref",
+    "ref": "app_user"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Sent",
+      "type": "qty",
+      "required": true,
+      "check": "qty > 0"
+     },
+     {
+      "name": "received_qty",
+      "label": "Received",
+      "type": "qty"
+     },
+     {
+      "name": "rate",
+      "label": "Transfer rate",
+      "type": "money",
+      "sensitive": "rates"
+     }
+    ],
+    "key": "purchase.transfer.lines",
+    "table": "purchase_transfer_lines"
+   }
+  ],
+  "stock": [
+   {
+    "child": "lines",
+    "item": "item_id",
+    "qty": "qty",
+    "dir": "out",
+    "rate": "rate",
+    "when": "approved"
+   },
+   {
+    "child": "lines",
+    "item": "item_id",
+    "qty": "qty",
+    "dir": "in",
+    "rate": "rate",
+    "when": "approved",
+    "location": "to_location_id"
+   }
+  ],
+  "module": "purchase",
+  "table": "purchase_transfer",
+  "plural": "Stock transfers"
+ },
+ {
+  "key": "purchase.issue",
+  "feature": "purchase.stock",
+  "label": "Material issue",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "MI/{LOC}/{FY}/{SEQ:5}",
+  "dated": true,
+  "mobile": true,
+  "icon": "package-minus",
+  "description": "Store issues material to a BOQ item, vehicle or machine.",
+  "fields": [
+   {
+    "name": "issued_for",
+    "label": "Issued for",
+    "type": "select",
+    "options": [
+     "boq_item",
+     "vehicle",
+     "plant_maintenance",
+     "production",
+     "general"
+    ],
+    "required": true,
+    "quick": true
+   },
+   {
+    "name": "boq_item_id",
+    "label": "BOQ item",
+    "type": "ref",
+    "ref": "infra.boq_item"
+   },
+   {
+    "name": "vehicle_id",
+    "label": "Vehicle",
+    "type": "ref",
+    "ref": "vehicle"
+   },
+   {
+    "name": "issued_to",
+    "label": "Issued to",
+    "type": "ref",
+    "ref": "app_user",
+    "quick": true
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Items",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "qty",
+      "label": "Qty",
+      "type": "qty",
+      "required": true,
+      "check": "qty > 0"
+     }
+    ],
+    "key": "purchase.issue.lines",
+    "table": "purchase_issue_lines"
+   }
+  ],
+  "stock": [
+   {
+    "child": "lines",
+    "item": "item_id",
+    "qty": "qty",
+    "dir": "out"
+   }
+  ],
+  "module": "purchase",
+  "table": "purchase_issue",
+  "plural": "Material issues"
+ },
+ {
+  "key": "purchase.stock_count",
+  "feature": "purchase.stock.blind_count",
+  "label": "Stock count",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "SC/{LOC}/{FY}/{SEQ:4}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "list-checks",
+  "description": "Blind count: the counter does not see system stock. Differences post on approval.",
+  "fields": [
+   {
+    "name": "remarks",
+    "label": "Remarks",
+    "type": "longtext"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Counted",
+    "fields": [
+     {
+      "name": "item_id",
+      "label": "Item",
+      "type": "ref",
+      "ref": "item",
+      "required": true
+     },
+     {
+      "name": "counted_qty",
+      "label": "Counted",
+      "type": "qty",
+      "required": true
+     },
+     {
+      "name": "system_qty",
+      "label": "System qty",
+      "type": "qty"
+     },
+     {
+      "name": "difference",
+      "label": "Difference",
+      "type": "qty",
+      "expr": "counted_qty - coalesce(system_qty, 0)"
+     }
+    ],
+    "key": "purchase.stock_count.lines",
+    "table": "purchase_stock_count_lines"
+   }
+  ],
+  "stock": [
+   {
+    "child": "lines",
+    "item": "item_id",
+    "qty": "difference",
+    "dir": "adjust",
+    "when": "approved"
+   }
+  ],
+  "module": "purchase",
+  "table": "purchase_stock_count",
+  "plural": "Stock counts"
+ },
+ {
+  "key": "purchase.rate_contract",
+  "feature": "purchase.rate_contracts",
+  "label": "Rate contract",
+  "kind": "master",
+  "scope": "company",
+  "dated": true,
+  "title": "doc_no",
+  "numbering": "RC/{FY}/{SEQ:4}",
+  "fields": [
+   {
+    "name": "party_id",
+    "label": "Vendor",
+    "type": "ref",
+    "ref": "party",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "item_id",
+    "label": "Item",
+    "type": "ref",
+    "ref": "item",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "rate",
+    "label": "Rate",
+    "type": "money",
+    "required": true,
+    "list": true,
+    "sensitive": "rates"
+   },
+   {
+    "name": "uom",
+    "label": "Unit",
+    "type": "text"
+   },
+   {
+    "name": "valid_from",
+    "label": "Valid from",
+    "type": "date",
+    "required": true
+   },
+   {
+    "name": "valid_to",
+    "label": "Valid to",
+    "type": "date",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "committed_qty",
+    "label": "Committed qty",
+    "type": "qty"
+   }
+  ],
+  "module": "purchase",
+  "table": "purchase_rate_contract",
+  "plural": "Rate contracts",
+  "children": []
+ },
+ {
+  "key": "hr.employee",
+  "feature": "hr.employees",
+  "label": "Employee",
+  "kind": "master",
+  "scope": "location",
+  "title": "full_name",
+  "fields": [
+   {
+    "name": "emp_code",
+    "label": "Employee code",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "full_name",
+    "label": "Name",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "user_id",
+    "label": "App login",
+    "type": "ref",
+    "ref": "app_user"
+   },
+   {
+    "name": "photo",
+    "label": "Photo",
+    "type": "photo"
+   },
+   {
+    "name": "mobile",
+    "label": "Mobile",
+    "type": "phone",
+    "check": "mobile is null or mobile ~ '^\\+?[0-9]{10,15}$'",
+    "required": true
+   },
+   {
+    "name": "employment_type",
+    "label": "Type",
+    "type": "select",
+    "options": [
+     "permanent",
+     "contract",
+     "daily_wage",
+     "driver",
+     "operator",
+     "apprentice"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "contractor_id",
+    "label": "Contractor (contract labour)",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "department",
+    "label": "Department",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "designation",
+    "label": "Designation",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "date_of_joining",
+    "label": "Joined on",
+    "type": "date",
+    "required": true
+   },
+   {
+    "name": "date_of_birth",
+    "label": "Date of birth",
+    "type": "date"
+   },
+   {
+    "name": "gender",
+    "label": "Gender",
+    "type": "select",
+    "options": [
+     "male",
+     "female",
+     "other"
+    ]
+   },
+   {
+    "name": "aadhaar_last4",
+    "label": "Aadhaar (last 4)",
+    "type": "text",
+    "check": "aadhaar_last4 is null or aadhaar_last4 ~ '^[0-9]{4}$'"
+   },
+   {
+    "name": "pan",
+    "label": "PAN",
+    "type": "text",
+    "check": "pan is null or pan ~ '^[A-Z]{5}[0-9]{4}[A-Z]$'"
+   },
+   {
+    "name": "uan",
+    "label": "UAN (PF)",
+    "type": "text",
+    "section": "Statutory"
+   },
+   {
+    "name": "esic_no",
+    "label": "ESIC no",
+    "type": "text",
+    "section": "Statutory"
+   },
+   {
+    "name": "pf_applicable",
+    "label": "PF",
+    "type": "bool",
+    "section": "Statutory",
+    "default": "true"
+   },
+   {
+    "name": "esi_applicable",
+    "label": "ESI",
+    "type": "bool",
+    "section": "Statutory"
+   },
+   {
+    "name": "bank_account",
+    "label": "Bank account",
+    "type": "text",
+    "section": "Bank"
+   },
+   {
+    "name": "ifsc",
+    "label": "IFSC",
+    "type": "text",
+    "section": "Bank"
+   },
+   {
+    "name": "driving_licence_no",
+    "label": "Driving licence",
+    "type": "text",
+    "section": "Driver"
+   },
+   {
+    "name": "licence_valid_till",
+    "label": "Licence valid till",
+    "type": "date",
+    "section": "Driver"
+   },
+   {
+    "name": "shift",
+    "label": "Shift",
+    "type": "select",
+    "options": [
+     "general",
+     "morning",
+     "afternoon",
+     "night",
+     "rotational"
+    ],
+    "default": "general"
+   },
+   {
+    "name": "weekly_off",
+    "label": "Weekly off",
+    "type": "select",
+    "options": [
+     "sunday",
+     "monday",
+     "tuesday",
+     "wednesday",
+     "thursday",
+     "friday",
+     "saturday",
+     "rotational"
+    ],
+    "default": "sunday"
+   },
+   {
+    "name": "pay_basis",
+    "label": "Paid",
+    "type": "select",
+    "options": [
+     "monthly",
+     "daily",
+     "piece_rate"
+    ],
+    "default": "monthly"
+   },
+   {
+    "name": "basic",
+    "label": "Basic",
+    "type": "money",
+    "sensitive": "rates",
+    "section": "Salary"
+   },
+   {
+    "name": "da",
+    "label": "DA",
+    "type": "money",
+    "default": "0",
+    "sensitive": "rates",
+    "section": "Salary"
+   },
+   {
+    "name": "hra",
+    "label": "HRA",
+    "type": "money",
+    "default": "0",
+    "sensitive": "rates",
+    "section": "Salary"
+   },
+   {
+    "name": "other_allowance",
+    "label": "Other allowances",
+    "type": "money",
+    "default": "0",
+    "sensitive": "rates",
+    "section": "Salary"
+   },
+   {
+    "name": "daily_wage",
+    "label": "Daily wage",
+    "type": "money",
+    "sensitive": "rates",
+    "section": "Salary"
+   },
+   {
+    "name": "monthly_gross",
+    "label": "Monthly gross",
+    "type": "money",
+    "expr": "coalesce(basic, 0) + coalesce(da, 0) + coalesce(hra, 0) + coalesce(other_allowance, 0)",
+    "sensitive": "rates"
+   },
+   {
+    "name": "emp_status",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "active",
+     "on_notice",
+     "left",
+     "absconding"
+    ],
+    "default": "active",
+    "list": true
+   },
+   {
+    "name": "date_of_leaving",
+    "label": "Left on",
+    "type": "date"
+   }
+  ],
+  "unique": [
+   [
+    "company_id",
+    "emp_code"
+   ]
+  ],
+  "module": "hr",
+  "table": "hr_employee",
+  "plural": "Employees",
+  "children": []
+ },
+ {
+  "key": "hr.attendance",
+  "feature": "hr.attendance",
+  "label": "Attendance",
+  "kind": "log",
+  "scope": "location",
+  "dated": true,
+  "mobile": true,
+  "icon": "fingerprint",
+  "title": "employee_id",
+  "fields": [
+   {
+    "name": "employee_id",
+    "label": "Employee",
+    "type": "ref",
+    "ref": "hr.employee",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "mark",
+    "label": "Status",
+    "type": "select",
+    "options": [
+     "present",
+     "half_day",
+     "absent",
+     "leave",
+     "weekly_off",
+     "holiday",
+     "on_duty"
+    ],
+    "default": "present",
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "in_time",
+    "label": "In",
+    "type": "datetime",
+    "list": true
+   },
+   {
+    "name": "out_time",
+    "label": "Out",
+    "type": "datetime",
+    "list": true
+   },
+   {
+    "name": "worked_hours",
+    "label": "Hours",
+    "type": "number",
+    "expr": "case when in_time is null or out_time is null then null else round(extract(epoch from out_time - in_time) / 3600, 2) end"
+   },
+   {
+    "name": "ot_hours",
+    "label": "OT hours",
+    "type": "number",
+    "default": "0"
+   },
+   {
+    "name": "late_minutes",
+    "label": "Late by (min)",
+    "type": "int",
+    "default": "0"
+   },
+   {
+    "name": "source",
+    "label": "Marked by",
+    "type": "select",
+    "options": [
+     "biometric",
+     "mobile_face",
+     "supervisor",
+     "regularised"
+    ],
+    "default": "mobile_face",
+    "list": true
+   },
+   {
+    "name": "face_photo",
+    "label": "Face photo",
+    "type": "photo"
+   },
+   {
+    "name": "inside_geofence",
+    "label": "Inside geofence",
+    "type": "bool"
+   },
+   {
+    "name": "device_serial",
+    "label": "Biometric device",
+    "type": "text"
+   }
+  ],
+  "unique": [
+   [
+    "employee_id",
+    "doc_date"
+   ]
+  ],
+  "module": "hr",
+  "table": "hr_attendance",
+  "plural": "Attendances",
+  "children": []
+ },
+ {
+  "key": "hr.leave",
+  "feature": "hr.leave",
+  "label": "Leave request",
+  "kind": "transaction",
+  "scope": "location",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "calendar-off",
+  "title": "employee_id",
+  "fields": [
+   {
+    "name": "employee_id",
+    "label": "Employee",
+    "type": "ref",
+    "ref": "hr.employee",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "leave_type",
+    "label": "Leave",
+    "type": "select",
+    "options": [
+     "casual",
+     "sick",
+     "earned",
+     "comp_off",
+     "unpaid"
+    ],
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "from_date",
+    "label": "From",
+    "type": "date",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "to_date",
+    "label": "To",
+    "type": "date",
+    "required": true,
+    "quick": true,
+    "check": "to_date >= from_date"
+   },
+   {
+    "name": "half_day",
+    "label": "Half day",
+    "type": "bool"
+   },
+   {
+    "name": "days",
+    "label": "Days",
+    "type": "number",
+    "expr": "case when half_day then 0.5 else (to_date - from_date + 1) end",
+    "list": true
+   },
+   {
+    "name": "reason",
+    "label": "Reason",
+    "type": "text",
+    "quick": true
+   }
+  ],
+  "module": "hr",
+  "table": "hr_leave",
+  "plural": "Leave requests",
+  "children": []
+ },
+ {
+  "key": "hr.advance",
+  "feature": "hr.advances_upi",
+  "label": "Salary advance",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "ADV/{LOC}/{SEQ:5}",
+  "dated": true,
+  "workflow": true,
+  "mobile": true,
+  "icon": "hand-coins",
+  "amount": "amount",
+  "description": "Requested on the phone, approved, paid by UPI, recovered from salary automatically.",
+  "fields": [
+   {
+    "name": "employee_id",
+    "label": "Employee",
+    "type": "ref",
+    "ref": "hr.employee",
+    "required": true,
+    "quick": true,
+    "list": true
+   },
+   {
+    "name": "amount",
+    "label": "Amount",
+    "type": "money",
+    "required": true,
+    "quick": true,
+    "list": true,
+    "check": "amount > 0"
+   },
+   {
+    "name": "recover_in_months",
+    "label": "Recover over (months)",
+    "type": "int",
+    "default": "1",
+    "quick": true
+   },
+   {
+    "name": "reason",
+    "label": "Reason",
+    "type": "text",
+    "quick": true
+   },
+   {
+    "name": "upi_ref",
+    "label": "UPI reference",
+    "type": "text"
+   },
+   {
+    "name": "recovered",
+    "label": "Recovered so far",
+    "type": "money",
+    "default": "0",
+    "list": true
+   },
+   {
+    "name": "balance",
+    "label": "Balance",
+    "type": "money",
+    "expr": "amount - coalesce(recovered, 0)",
+    "list": true
+   }
+  ],
+  "posting": {
+   "voucher": "payment",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "STAFF_ADVANCES",
+     "amount": "amount"
+    },
+    {
+     "side": "Cr",
+     "ledger": "BANK",
+     "amount": "amount"
+    }
+   ]
+  },
+  "module": "hr",
+  "table": "hr_advance",
+  "plural": "Salary advances",
+  "children": []
+ },
+ {
+  "key": "hr.payroll_run",
+  "feature": "hr.payroll",
+  "label": "Payroll run",
+  "kind": "transaction",
+  "scope": "location",
+  "numbering": "PR/{LOC}/{FY}/{SEQ:3}",
+  "dated": true,
+  "workflow": true,
+  "amount": "net_pay",
+  "title": "month",
+  "description": "Monthly salary for a location: attendance, OT, incentives from operations, PF/ESI/PT/TDS, advance recovery.",
+  "fields": [
+   {
+    "name": "month",
+    "label": "Month (YYYY-MM)",
+    "type": "text",
+    "required": true,
+    "list": true,
+    "check": "month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'"
+   },
+   {
+    "name": "days_in_month",
+    "label": "Days in month",
+    "type": "int"
+   },
+   {
+    "name": "gross",
+    "label": "Gross",
+    "type": "money",
+    "list": true
+   },
+   {
+    "name": "pf_employee",
+    "label": "PF (employee)",
+    "type": "money"
+   },
+   {
+    "name": "pf_employer",
+    "label": "PF (employer)",
+    "type": "money"
+   },
+   {
+    "name": "esi_employee",
+    "label": "ESI (employee)",
+    "type": "money"
+   },
+   {
+    "name": "esi_employer",
+    "label": "ESI (employer)",
+    "type": "money"
+   },
+   {
+    "name": "pt",
+    "label": "Professional tax",
+    "type": "money"
+   },
+   {
+    "name": "tds",
+    "label": "TDS",
+    "type": "money"
+   },
+   {
+    "name": "advance_recovery",
+    "label": "Advance recovery",
+    "type": "money"
+   },
+   {
+    "name": "net_pay",
+    "label": "Net pay",
+    "type": "money",
+    "list": true
+   }
+  ],
+  "rollups": [
+   {
+    "field": "gross",
+    "child": "lines",
+    "expr": "coalesce(sum(gross), 0)"
+   },
+   {
+    "field": "pf_employee",
+    "child": "lines",
+    "expr": "coalesce(sum(pf_employee), 0)"
+   },
+   {
+    "field": "pf_employer",
+    "child": "lines",
+    "expr": "coalesce(sum(pf_employer), 0)"
+   },
+   {
+    "field": "esi_employee",
+    "child": "lines",
+    "expr": "coalesce(sum(esi_employee), 0)"
+   },
+   {
+    "field": "esi_employer",
+    "child": "lines",
+    "expr": "coalesce(sum(esi_employer), 0)"
+   },
+   {
+    "field": "pt",
+    "child": "lines",
+    "expr": "coalesce(sum(pt), 0)"
+   },
+   {
+    "field": "tds",
+    "child": "lines",
+    "expr": "coalesce(sum(tds), 0)"
+   },
+   {
+    "field": "advance_recovery",
+    "child": "lines",
+    "expr": "coalesce(sum(advance_recovery), 0)"
+   },
+   {
+    "field": "net_pay",
+    "child": "lines",
+    "expr": "coalesce(sum(net_pay), 0)"
+   }
+  ],
+  "children": [
+   {
+    "name": "lines",
+    "label": "Employees",
+    "fields": [
+     {
+      "name": "employee_id",
+      "label": "Employee",
+      "type": "ref",
+      "ref": "hr.employee",
+      "required": true
+     },
+     {
+      "name": "paid_days",
+      "label": "Paid days",
+      "type": "number"
+     },
+     {
+      "name": "ot_hours",
+      "label": "OT hours",
+      "type": "number",
+      "default": "0"
+     },
+     {
+      "name": "earned_basic_da",
+      "label": "Basic + DA earned",
+      "type": "money"
+     },
+     {
+      "name": "earned_other",
+      "label": "Other earned",
+      "type": "money"
+     },
+     {
+      "name": "ot_amount",
+      "label": "OT amount",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "incentive",
+      "label": "Incentives",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "gross",
+      "label": "Gross",
+      "type": "money",
+      "expr": "coalesce(earned_basic_da, 0) + coalesce(earned_other, 0) + coalesce(ot_amount, 0) + coalesce(incentive, 0)"
+     },
+     {
+      "name": "pf_employee",
+      "label": "PF",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "pf_employer",
+      "label": "PF employer",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "esi_employee",
+      "label": "ESI",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "esi_employer",
+      "label": "ESI employer",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "pt",
+      "label": "PT",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "tds",
+      "label": "TDS",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "advance_recovery",
+      "label": "Advance",
+      "type": "money",
+      "default": "0"
+     },
+     {
+      "name": "net_pay",
+      "label": "Net pay",
+      "type": "money",
+      "expr": "coalesce(earned_basic_da, 0) + coalesce(earned_other, 0) + coalesce(ot_amount, 0) + coalesce(incentive, 0) - coalesce(pf_employee, 0) - coalesce(esi_employee, 0) - coalesce(pt, 0) - coalesce(tds, 0) - coalesce(advance_recovery, 0)"
+     },
+     {
+      "name": "anomalies",
+      "label": "Checks",
+      "type": "json"
+     }
+    ],
+    "key": "hr.payroll_run.lines",
+    "table": "hr_payroll_run_lines"
+   }
+  ],
+  "posting": {
+   "voucher": "payroll",
+   "lines": [
+    {
+     "side": "Dr",
+     "ledger": "SALARIES",
+     "amount": "gross"
+    },
+    {
+     "side": "Dr",
+     "ledger": "EMPLOYER_PF_ESI",
+     "amount": "pf_employer"
+    },
+    {
+     "side": "Dr",
+     "ledger": "EMPLOYER_PF_ESI",
+     "amount": "esi_employer"
+    },
+    {
+     "side": "Cr",
+     "ledger": "PF_PAYABLE",
+     "amount": "pf_employee"
+    },
+    {
+     "side": "Cr",
+     "ledger": "PF_PAYABLE",
+     "amount": "pf_employer"
+    },
+    {
+     "side": "Cr",
+     "ledger": "ESI_PAYABLE",
+     "amount": "esi_employee"
+    },
+    {
+     "side": "Cr",
+     "ledger": "ESI_PAYABLE",
+     "amount": "esi_employer"
+    },
+    {
+     "side": "Cr",
+     "ledger": "PT_PAYABLE",
+     "amount": "pt"
+    },
+    {
+     "side": "Cr",
+     "ledger": "TDS_PAYABLE",
+     "amount": "tds"
+    },
+    {
+     "side": "Cr",
+     "ledger": "STAFF_ADVANCES",
+     "amount": "advance_recovery"
+    },
+    {
+     "side": "Cr",
+     "ledger": "SALARY_PAYABLE",
+     "amount": "net_pay"
+    }
+   ]
+  },
+  "module": "hr",
+  "table": "hr_payroll_run",
+  "plural": "Payroll runs"
+ }
+]
