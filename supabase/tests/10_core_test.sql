@@ -292,9 +292,9 @@ reset role;
 
 -- Server-side AI agent acting for the accountant.
 begin;
-select t.login('40000000-0000-0000-0000-00000000000e');
 select audit.set_context(p_source => 'ai', p_actor_type => 'ai_agent', p_on_behalf_of => '40000000-0000-0000-0000-00000000000e',
                          p_correlation_id => 'zadk-abc');
+select t.login('40000000-0000-0000-0000-00000000000e');
 update party set whatsapp = '9123456789' where party_code = 'C001';
 commit;
 reset role;

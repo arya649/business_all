@@ -549,4 +549,22 @@ select t.ok((select net_kg from weighbridge_ticket where vehicle_no = 'AP16TX452
             and (select actor_type from audit.log where table_name = 'public.weighbridge_ticket' order by id desc limit 1) = 'hardware',
             'ticket net 7,000 kg, recorded in the audit log as the scale');
 
+-- ===========================================================================
+\echo '== Hardening'
+-- ===========================================================================
+select t.login('41000000-0000-0000-0000-00000000000b');
+do $$ begin
+  perform fin_write_journal('21000000-0000-0000-0000-000000000002', null, current_date, 'journal', 'fake', null, null, null, '[]', null, false, false, null, null);
+  raise exception 'FAIL: user wrote a journal directly';
+exception when insufficient_privilege then perform t.ok(true, 'people cannot write journals directly, only through documents');
+end $$;
+reset role;
+select set_config('role', 'anon', false);
+do $$ begin
+  perform owner_dashboard();
+  raise exception 'FAIL: anonymous call allowed';
+exception when insufficient_privilege then perform t.ok(true, 'signed-out callers cannot use app functions');
+end $$;
+reset role;
+
 \echo '== all module tests passed'
