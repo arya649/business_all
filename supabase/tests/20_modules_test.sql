@@ -411,4 +411,25 @@ select t.ok(exists (select 1 from record_history where table_name = 'public.bunk
 select t.ok((select count(*) from audit.verify_chain('11000000-0000-0000-0000-000000000001')) = 0, 'audit chain for the group is intact');
 reset role;
 
+-- ===========================================================================
+\echo '== Owner dashboard and leakage board'
+-- ===========================================================================
+select t.login('41000000-0000-0000-0000-00000000000a');
+select t.ok((select count(*) from owner_dashboard()) = 2, 'owner sees both companies on the dashboard');
+select t.ok((select fuel_litres_sold from owner_dashboard() where company_code = 'LFUEL') = 995, 'bunk litres sold this month');
+select t.ok((select rmc_m3 from owner_dashboard() where company_code = 'LRMC') = 17.5, 'RMC m³ delivered this month');
+select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000002') where kind = 'tank_variance'), 'leakage board: tank variance');
+select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000002') where kind = 'cash_short'), 'leakage board: cash short');
+select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000001') where kind = 'tare_drift'), 'leakage board: tare drift');
+select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000001') where kind = 'batch_deviation'), 'leakage board: batch deviation');
+select t.ok(not exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000001') where kind = 'unbilled_work'), 'leakage board: fully billed project work is not flagged');
+select t.ok(jsonb_array_length(my_context() -> 'companies') = 2, 'my_context lists the owner''s companies');
+select t.ok((select count(*) from erp_history('rmc.order', :'order_id')) >= 1, 'History tab for an RMC order');
+reset role;
+select t.login('41000000-0000-0000-0000-00000000000b');
+select t.ok((select count(*) from owner_dashboard()) = 0, 'cashier gets no owner dashboard');
+select t.ok((select count(*) from leakage_board('21000000-0000-0000-0000-000000000002')) = 0, 'or leakage board');
+select t.ok(jsonb_array_length(my_context() -> 'companies' -> 0 -> 'locations') = 1, 'cashier''s context: just the bunk');
+reset role;
+
 \echo '== all module tests passed'
