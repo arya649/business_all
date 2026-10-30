@@ -1,0 +1,83 @@
+{
+  "$comment": "Every key is a toggle node in Super Admin. States: on | off | read_only | hidden. Resolved group > company > location > role > user. Children inherit parent state unless overridden. 'config' holds admin-editable settings for that feature.",
+  "core": {
+    "admin": { "companies": {}, "users_roles": {}, "feature_toggles": {}, "number_series": {} },
+    "audit": { "record_history": {}, "chain_verify": {} },
+    "masters": { "party": {}, "item": {}, "vehicle": {}, "employee": {}, "project": {} },
+    "approvals": { "mobile_approval": {}, "whatsapp_approval": {}, "delegation": {} },
+    "notifications": {
+      "whatsapp": {}, "sms": {}, "email": {}, "push": {},
+      "owner_daily_summary": { "config": { "times": ["08:00", "20:00"] } }
+    },
+    "dashboard": { "owner": {}, "leakage_board": {}, "unbilled_tracker": {} },
+    "documents": { "expiry_calendar": {}, "ocr_search": {}, "camera_only_photos": {} },
+    "offline": { "config": { "number_block_size": 50, "max_unsynced_hours_alert": 24 } },
+    "languages": { "config": { "enabled": ["en", "te", "hi", "ta", "kn"] } }
+  },
+  "ai": {
+    "chat": {}, "voice_entry": {}, "ocr": {}, "write_actions": { "config": { "require_confirm": true } },
+    "proactive": {
+      "diesel_watchdog": {}, "weighbridge_watchdog": {}, "unbilled_finder": {},
+      "collections": {}, "stock_anomaly": {}, "compliance": {}, "owner_brief": {}
+    }
+  },
+  "finance": {
+    "ledger": {}, "sales_invoice": {}, "purchase_invoice": {}, "receipts_payments": {},
+    "gst": { "e_invoice": {}, "eway_bill": {}, "gstr1": {}, "gstr2b_match": {}, "gstr3b": {} },
+    "tds": {}, "tcs": {}, "bank_reconciliation": { "ai_match": {} },
+    "intercompany": {}, "consolidation": {}, "cheque_register": {}, "cashflow_forecast": {},
+    "tally_export": {}, "period_lock": {}
+  },
+  "crm": {
+    "lead_capture": { "website": {}, "whatsapp": {}, "missed_call": {}, "indiamart": {}, "call_log": {} },
+    "pipelines": {}, "quotation": { "price_list": {}, "distance_freight": {} },
+    "tenders": { "emd_bg_register": {} }, "site_hunting_map": {}, "cross_sell": {}
+  },
+  "rmc": {
+    "orders": {}, "mix_design": {}, "pour_schedule": {},
+    "batch_entry": { "plant_controller_import": {} },
+    "trips": { "customer_live_link": {} }, "delivery_challan": { "e_sign": {}, "bluetooth_print": {} },
+    "cube_test": { "config": { "ages": [7, 28], "min_samples": 3 } },
+    "billing": { "waiting_charges": {}, "pump_charges": {} }, "material_reconciliation": {}, "profit_per_m3": {}
+  },
+  "bitumen": {
+    "raw_material_inward": {}, "jmf": {}, "production_batch": {}, "dispatch": {},
+    "temperature_chain": {}, "quality_lab": {}, "billing": {}
+  },
+  "weighbridge": {
+    "tickets": { "manual_weight_allowed": {}, "paid_weighing": {} },
+    "hardware": { "scale": {}, "camera": {}, "rfid": {}, "anpr": {}, "boom_barrier": {} },
+    "tare_check": { "config": { "tolerance_kg": 100 } }, "fraud_rules": {}
+  },
+  "bricks": {
+    "recipe": {}, "daily_production": {}, "curing": { "config": { "curing_days": 14 } },
+    "breakage": {}, "dispatch": {}, "piece_rate_wages": {}
+  },
+  "infra": {
+    "projects": {}, "boq": { "excel_import": {} }, "dpr": { "voice_dpr": {} },
+    "measurement_book": {}, "ra_bills": {}, "labour_attendance": {}, "material_request": {},
+    "subcontractor": {}, "hindrance_register": {}, "project_health": {}
+  },
+  "bunk": {
+    "shift": { "nozzle_readings": {}, "cash_denomination": {}, "upi_pos_match": {} },
+    "tanks": { "daily_dip": {}, "density": {}, "atg_integration": {} },
+    "tanker_receipt": {}, "dsr": {}, "credit_customers": { "limit_check": {} },
+    "internal_fuel_issue": {}, "lubes": {}, "variance_detective": {}
+  },
+  "fleet": {
+    "gps": {}, "fuel_sensor": {}, "trips": {}, "fuel_log": {}, "service": {}, "tyres": {},
+    "documents": { "config": { "remind_days": [30, 15, 7] } }, "machines_hours": {},
+    "hire_billing": {}, "driver_scorecard": {}, "idle_asset_finder": {}
+  },
+  "purchase": {
+    "indent": {}, "central_buying": {}, "rfq": {}, "comparative": {}, "po": {}, "grn": {},
+    "three_way_match": { "config": { "rate_tolerance_pct": 1, "qty_tolerance_pct": 0.5 } },
+    "stock": { "transfers": {}, "blind_count": {}, "reorder_suggestions": {} },
+    "rate_contracts": {}, "vendor_scorecard": {}
+  },
+  "hr": {
+    "employees": {}, "attendance": { "biometric": {}, "mobile_face_geofence": {} },
+    "shifts": {}, "leave": {}, "payroll": { "pf": {}, "esi": {}, "pt": {}, "lwf": {}, "tds": {} },
+    "contract_labour": {}, "advances_upi": {}, "operational_incentives": {}, "payslip_whatsapp": {}
+  }
+}
