@@ -60,6 +60,10 @@ for (const m of modules) {
   }
 }
 for (const e of entities.values()) {
+  for (const r of e.rollups ?? []) {
+    const fl = e.fields.find((x) => x.name === r.field);
+    if (fl) fl.auto = true;
+  }
   for (const fl of [...e.fields, ...(e.children ?? []).flatMap((c) => c.fields)]) {
     if (RESERVED.has(fl.name)) errors.push(`${e.key}.${fl.name}: reserved column name`);
     if (!SQL_TYPES[fl.type]) errors.push(`${e.key}.${fl.name}: unknown type ${fl.type}`);
@@ -93,7 +97,7 @@ function columnSql(table, fl) {
 function catalogRows(entityKey, fields) {
   return fields.map((fl, i) => `(${[
     q(entityKey), q(fl.name), q(fl.label), q(fl.type), fl.required ? "true" : "false",
-    fl.options ? q(JSON.stringify(fl.options)) + "::jsonb" : "null", q(fl.ref ?? null), fl.expr ? "true" : "false",
+    fl.options ? q(JSON.stringify(fl.options)) + "::jsonb" : "null", q(fl.ref ?? null), fl.expr || fl.auto ? "true" : "false",
     q(fl.sensitive ?? null), fl.quick ? "true" : "false", fl.list ? "true" : "false", q(fl.unit ?? null), q(fl.help ?? null),
     q(fl.section ?? null), fl.type === "bool" || fl.expr ? "null" : q(fl.default ?? null), i,
   ].join(", ")})`);

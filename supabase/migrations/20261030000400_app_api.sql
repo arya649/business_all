@@ -58,22 +58,22 @@ language sql stable security definer set search_path = public as $$
     from weighbridge_ticket w where w.company_id = p_company and 'manual' in (w.first_mode, w.second_mode) and w.doc_date > current_date - 30
     union all
     select 'batch_deviation', 'medium', 'Batch outside mix design',
-           format('%s: worst material off by %s%%', b.doc_no, b.max_deviation_pct),
+           format('%s: worst material off by %s%%', b.doc_no, trim_scale(round(b.max_deviation_pct, 1))),
            'rmc.batch', b.id, b.location_id, b.max_deviation_pct, b.doc_date
     from rmc_batch b where b.company_id = p_company and b.deviation_alert and b.doc_date > current_date - 30
     union all
     select 'unbilled_challan', 'high', 'Delivered but not billed',
-           format('%s %s m³ %s, %s days ago', c.doc_no, c.qty_m3, c.grade, current_date - c.doc_date),
+           format('%s %s m³ %s, %s days ago', c.doc_no, trim_scale(c.qty_m3), c.grade, current_date - c.doc_date),
            'rmc.challan', c.id, c.location_id, c.qty_m3 * coalesce(o.rate_per_m3, 0), c.doc_date
     from rmc_challan c join rmc_order o on o.id = c.order_id
     where c.company_id = p_company and c.billing_status = 'unbilled' and c.doc_date < current_date - 2
     union all
-    select 'unbilled_hotmix', 'high', 'Hot-mix delivered but not billed', format('%s %s MT', d.doc_no, d.net_mt),
+    select 'unbilled_hotmix', 'high', 'Hot-mix delivered but not billed', format('%s %s MT', d.doc_no, trim_scale(d.net_mt)),
            'bitumen.dispatch', d.id, d.location_id, d.amount, d.doc_date
     from bitumen_dispatch d where d.company_id = p_company and d.billing_status = 'unbilled' and d.doc_date < current_date - 2
     union all
     select 'fuel_mismatch', 'high', 'Fuel use above norm',
-           format('%s: %s%% worse than norm', v.reg_no, f.variance_pct),
+           format('%s: %s%% worse than norm', v.reg_no, trim_scale(round(f.variance_pct, 1))),
            'fleet.fuel', f.id, f.location_id, f.litres, f.doc_date
     from fleet_fuel f join vehicle v on v.id = f.vehicle_id
     where f.company_id = p_company and f.mismatch_alert and f.doc_date > current_date - 30
@@ -200,4 +200,71 @@ language sql stable security definer set search_path = public as $$
   from erp_entity e join erp_field f on f.entity_key = e.key
   where e.feature_key = p_feature or e.feature_key like p_feature || '.%'
      or e.parent_key in (select key from erp_entity where feature_key = p_feature or feature_key like p_feature || '.%')
+$$;
+
+-- Public wrapper so the admin screen can check the audit chain without exposing the audit schema.
+create function public.verify_audit_chain() returns table (seq bigint, problem text)
+language sql stable security definer set search_path = public as $$
+  select * from audit.verify_chain(public.auth_tenant_id())
+$$;
+
+-- ---------------------------------------------------------------------------
+-- AI (Zentrix ADK)
+-- ---------------------------------------------------------------------------
+
+-- Scopes for the user's Zentrix token: plan ∩ switches ∩ role, the same rule Zentrix applies to partner ∩ customer ∩ token.
+create function public.ai_scopes(p_company uuid, p_location uuid default null) returns text[]
+language sql stable security definer set search_path = public as $$
+  with f as (select * from public.resolved_features(p_company, p_location))
+  select array_remove(array(
+    select 'agent.' || a from unnest(array['owner_assistant', 'site_assistant', 'plant_assistant', 'bunk_assistant',
+                                           'fleet_assistant', 'accounts_assistant', 'admin_assistant']) a
+    where exists (select 1 from f where feature_key = 'ai.chat' and state = 'on')
+      and (a <> 'admin_assistant' or public.is_tenant_admin())
+      and (a <> 'owner_assistant' or public.is_tenant_admin() or public.user_can('core.dashboard.owner', 'view', p_company, null))
+    union all
+    select 'extract.*' where exists (select 1 from f where feature_key = 'ai.ocr' and state = 'on')
+    union all
+    select e.feature_key || '.' || act
+    from erp_entity e cross join unnest(array['view', 'create']) act
+    where e.parent_key is null
+      and exists (select 1 from f where f.feature_key = e.feature_key and f.state in ('on', 'read_only'))
+      and (public.user_can(e.feature_key, act, p_company, p_location)
+           or exists (select 1 from location l where l.company_id = p_company and public.user_can(e.feature_key, act, p_company, l.id)))
+  ), null)
+$$;
+
+-- The single door AI tools use to read ERP data. Only tokens minted by the AI service (claim via = zentrix)
+-- may call it; it runs as the user (RLS and permissions apply) and marks every audit record as an AI action
+-- on that user's behalf, linked to the Zentrix correlation id.
+create function public.ai_call(p_fn text, p_args jsonb default '{}') returns jsonb
+language plpgsql security invoker set search_path = public as $$
+declare
+  v_claims jsonb := nullif(current_setting('request.jwt.claims', true), '')::jsonb;
+  v jsonb;
+begin
+  if coalesce(v_claims ->> 'via', '') <> 'zentrix' then
+    raise exception 'ai_call is only for the AI service' using errcode = '42501';
+  end if;
+  perform audit.set_context(p_source => 'ai', p_actor_type => 'ai_agent', p_on_behalf_of => auth.uid(),
+                            p_correlation_id => v_claims ->> 'correlation_id');
+  case p_fn
+    when 'erp_catalog' then v := public.erp_catalog((p_args ->> 'company')::uuid, (p_args ->> 'location')::uuid);
+    when 'erp_list' then v := public.erp_list(p_args ->> 'entity', (p_args ->> 'company')::uuid, (p_args ->> 'location')::uuid,
+                                              coalesce(p_args -> 'filters', '{}'), p_args ->> 'search', coalesce((p_args ->> 'limit')::int, 20), 0);
+    when 'erp_get' then v := public.erp_get(p_args ->> 'entity', (p_args ->> 'id')::uuid);
+    when 'owner_dashboard' then select coalesce(jsonb_agg(to_jsonb(d)), '[]') into v from public.owner_dashboard() d;
+    when 'leakage_board' then select coalesce(jsonb_agg(to_jsonb(d)), '[]') into v from public.leakage_board((p_args ->> 'company')::uuid) d;
+    when 'trial_balance' then select coalesce(jsonb_agg(to_jsonb(d)), '[]') into v from public.trial_balance((p_args ->> 'company')::uuid) d;
+    when 'stock_on_hand' then select coalesce(jsonb_agg(to_jsonb(d)), '[]') into v
+                              from public.stock_on_hand((p_args ->> 'company')::uuid, (p_args ->> 'location')::uuid) d;
+    when 'party_balance' then v := to_jsonb(public.party_balance((p_args ->> 'company')::uuid, (p_args ->> 'party')::uuid));
+    when 'project_health' then v := public.project_health((p_args ->> 'project')::uuid);
+    when 'lookup' then select coalesce(jsonb_agg(to_jsonb(d)), '[]') into v
+                       from public.erp_lookup(p_args ->> 'ref', (p_args ->> 'company')::uuid, p_args ->> 'search') d;
+    else raise exception 'AI tools cannot call %', p_fn;
+  end case;
+  perform audit.log_event('ai.tool_call', 'ai', p_fn, jsonb_build_object('args', p_args));
+  return v;
+end;
 $$;

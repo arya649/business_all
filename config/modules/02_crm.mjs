@@ -58,7 +58,7 @@ export default {
         f.int("site_distance_km", "Site distance (km)"),
         f.money("transport_charge", "Transport charge", { default: "0", sensitive: "rates" }),
         f.money("pump_charge", "Pump charge", { default: "0", sensitive: "rates" }),
-        f.percent("max_discount_pct", "Highest line discount %"),
+        f.percent("max_discount_pct", "Highest line discount %", { auto: true }),
         f.int("version", "Version", { default: "1" }),
         f.select("result", "Result", ["open", "accepted", "rejected", "expired", "revised"], { default: "open", list: true }),
         f.money("taxable_value", "Taxable"),

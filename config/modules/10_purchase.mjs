@@ -13,14 +13,14 @@ export default {
         f.date("required_by", "Needed by", { quick: true, list: true }),
         f.text("purpose", "For", { quick: true, help: "BOQ item, vehicle, plant maintenance..." }),
         f.ref("vehicle_id", "Vehicle (spares)", "vehicle"),
-        f.select("fulfilment", "Fulfilled by", ["pending", "transfer", "po", "partly", "closed"], { default: "pending", list: true }),
+        f.select("fulfilment", "Fulfilled by", ["pending", "transfer", "po", "partly", "closed"], { default: "pending", list: true, auto: true }),
       ],
       children: [{
         name: "lines", label: "Items", fields: [
           item("item_id", "Item", { required: true }),
           f.qty("qty", "Qty", { required: true, check: "qty > 0" }),
           f.text("uom", "Unit"),
-          f.qty("stock_at_location", "Stock here now"),
+          f.qty("stock_at_location", "Stock here now", { auto: true }),
           f.photo("photo", "Photo (spares)"),
           f.text("remarks", "Remarks"),
         ],
@@ -41,11 +41,11 @@ export default {
         f.money("taxable_value", "Taxable"),
         f.money("gst_amount", "GST"),
         f.calc("grand_total", "Total", "money", "taxable_value + gst_amount", { list: true }),
-        f.select("receipt_status", "Received", ["pending", "partly", "complete", "short_closed"], { default: "pending", list: true }),
+        f.select("receipt_status", "Received", ["pending", "partly", "complete", "short_closed"], { default: "pending", list: true, auto: true }),
         f.longtext("terms", "Terms"),
       ],
       rollups: taxRollups,
-      children: [taxLines([f.qty("received_qty", "Received so far", { default: "0" }), f.money("last_rate", "Last rate paid", { sensitive: "rates" })])],
+      children: [taxLines([f.qty("received_qty", "Received so far", { default: "0", auto: true }), f.money("last_rate", "Last rate paid", { sensitive: "rates", auto: true })])],
     },
     {
       key: "purchase.grn", feature: "purchase.grn", label: "Goods receipt", kind: "transaction", scope: "location",
@@ -59,7 +59,7 @@ export default {
         f.ref("weighbridge_ticket_id", "Weighbridge ticket", "weighbridge.ticket"),
         f.select("qc_status", "Quality check", ["not_required", "pending", "accepted", "partly_rejected", "rejected"], { default: "not_required", list: true }),
         f.photos("photos", "Photos (material, challan)", { quick: true }),
-        f.money("value", "Value", { sensitive: "rates" }),
+        f.money("value", "Value", { sensitive: "rates", auto: true }),
       ],
       rollups: [{ field: "value", child: "lines", expr: "coalesce(sum(accepted_qty * coalesce(rate, 0)), 0)" }],
       children: [{
@@ -94,7 +94,7 @@ export default {
         name: "lines", label: "Items", fields: [
           item("item_id", "Item", { required: true }),
           f.qty("qty", "Sent", { required: true, check: "qty > 0" }),
-          f.qty("received_qty", "Received"),
+          f.qty("received_qty", "Received", { help: "Filled by the receiving location" }),
           f.money("rate", "Transfer rate", { sensitive: "rates" }),
         ],
       }],
@@ -130,7 +130,7 @@ export default {
         name: "lines", label: "Counted", fields: [
           item("item_id", "Item", { required: true }),
           f.qty("counted_qty", "Counted", { required: true }),
-          f.qty("system_qty", "System qty"),
+          f.qty("system_qty", "System qty", { auto: true }),
           f.calc("difference", "Difference", "qty", "counted_qty - coalesce(system_qty, 0)"),
         ],
       }],

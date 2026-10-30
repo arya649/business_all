@@ -1,6 +1,7 @@
 // Small helpers for describing module records. Every field takes (name, label, options).
 // Options: required, quick (on the simple mobile form), list (column in lists), unit, help, section,
-//          default (SQL literal text), sensitive ('rates' | 'cost'), check (SQL boolean on this row), expr (computed).
+//          default (SQL literal text), sensitive ('rates' | 'cost'), check (SQL boolean on this row), expr (computed),
+//          auto (kept up to date by the system: shown read-only, never taken from the form).
 
 const field = (type) => (name, label, o = {}) => ({ name, label, type, ...o });
 

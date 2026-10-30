@@ -156,50 +156,59 @@
    {
     "name": "source_entity",
     "label": "Source document type",
-    "type": "text"
+    "type": "text",
+    "auto": true
    },
    {
     "name": "source_id",
     "label": "Source document id",
-    "type": "text"
+    "type": "text",
+    "auto": true
    },
    {
     "name": "source_doc_no",
     "label": "Source document no",
     "type": "text",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "is_intercompany",
     "label": "Inter-company",
-    "type": "bool"
+    "type": "bool",
+    "auto": true
    },
    {
     "name": "counterparty_company_id",
     "label": "Other group company",
     "type": "ref",
-    "ref": "company"
+    "ref": "company",
+    "auto": true
    },
    {
     "name": "ic_reference",
     "label": "Inter-company reference",
-    "type": "text"
+    "type": "text",
+    "auto": true
    },
    {
     "name": "is_reversal",
     "label": "Reversal",
-    "type": "bool"
+    "type": "bool",
+    "auto": true
    },
    {
     "name": "total_debit",
     "label": "Total debit",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "total_credit",
     "label": "Total credit",
-    "type": "money"
+    "type": "money",
+    "auto": true
    }
   ],
   "rollups": [
@@ -340,23 +349,27 @@
    {
     "name": "source_entity",
     "label": "Billed from",
-    "type": "text"
+    "type": "text",
+    "auto": true
    },
    {
     "name": "source_ids",
     "label": "Challans / dispatches billed",
-    "type": "json"
+    "type": "json",
+    "auto": true
    },
    {
     "name": "taxable_value",
     "label": "Taxable value",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "gst_amount",
     "label": "GST",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "tcs_amount",
@@ -627,12 +640,14 @@
      "no_grn"
     ],
     "default": "not_checked",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "match_notes",
     "label": "Match notes",
-    "type": "longtext"
+    "type": "longtext",
+    "auto": true
    },
    {
     "name": "itc_eligible",
@@ -650,7 +665,8 @@
      "partial",
      "missing"
     ],
-    "default": "not_checked"
+    "default": "not_checked",
+    "auto": true
    },
    {
     "name": "tds_section",
@@ -666,12 +682,14 @@
    {
     "name": "taxable_value",
     "label": "Taxable value",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "gst_amount",
     "label": "GST",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "round_off",
@@ -1204,7 +1222,8 @@
      "ignored"
     ],
     "default": "unmatched",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "matched_entity",
@@ -1617,7 +1636,8 @@
    {
     "name": "max_discount_pct",
     "label": "Highest line discount %",
-    "type": "percent"
+    "type": "percent",
+    "auto": true
    },
    {
     "name": "version",
@@ -1642,12 +1662,14 @@
    {
     "name": "taxable_value",
     "label": "Taxable",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "gst_amount",
     "label": "GST",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "grand_total",
@@ -2329,19 +2351,22 @@
      "override_approved"
     ],
     "default": "not_checked",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "outstanding_at_order",
     "label": "Customer outstanding when ordered",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "delivered_m3",
     "label": "Delivered",
     "type": "qty",
     "unit": "m³",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "delivery_status",
@@ -2444,13 +2469,15 @@
     "label": "Worst deviation from mix",
     "type": "number",
     "unit": "%",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "deviation_alert",
     "label": "Outside tolerance",
     "type": "bool",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "source",
@@ -2685,13 +2712,15 @@
      "not_billable"
     ],
     "default": "unbilled",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "invoice_id",
     "label": "Invoice",
     "type": "ref",
-    "ref": "finance.sales_invoice"
+    "ref": "finance.sales_invoice",
+    "auto": true
    }
   ],
   "module": "rmc",
@@ -2783,7 +2812,8 @@
     "label": "28-day average",
     "type": "number",
     "unit": "N/mm²",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "result",
@@ -3022,7 +3052,8 @@
     "name": "temp_alert",
     "label": "Temperature outside band",
     "type": "bool",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "bitumen_kg",
@@ -3429,7 +3460,8 @@
    {
     "name": "first_weight_at",
     "label": "First weighed at",
-    "type": "datetime"
+    "type": "datetime",
+    "auto": true
    },
    {
     "name": "first_mode",
@@ -3456,7 +3488,8 @@
    {
     "name": "second_weight_at",
     "label": "Second weighed at",
-    "type": "datetime"
+    "type": "datetime",
+    "auto": true
    },
    {
     "name": "second_mode",
@@ -3520,18 +3553,21 @@
     "name": "standard_tare_kg",
     "label": "Vehicle's usual tare",
     "type": "number",
-    "unit": "kg"
+    "unit": "kg",
+    "auto": true
    },
    {
     "name": "tare_alert",
     "label": "Tare differs from usual",
     "type": "bool",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "minutes_between",
     "label": "Minutes between weighments",
-    "type": "int"
+    "type": "int",
+    "auto": true
    },
    {
     "name": "weighing_charge",
@@ -3549,7 +3585,8 @@
      "cancelled"
     ],
     "default": "first_done",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "manual_reason",
@@ -3807,19 +3844,22 @@
     "name": "ready_on",
     "label": "Ready on",
     "type": "date",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "broken",
     "label": "Broken in curing",
     "type": "int",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "dispatched",
     "label": "Dispatched",
     "type": "int",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "available",
@@ -3839,7 +3879,8 @@
      "finished"
     ],
     "default": "curing",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "last_watered",
@@ -4142,7 +4183,8 @@
     "name": "physical_progress_pct",
     "label": "Physical progress",
     "type": "percent",
-    "list": true
+    "list": true,
+    "auto": true
    }
   ],
   "module": "infra",
@@ -4213,13 +4255,15 @@
     "label": "Done so far",
     "type": "qty",
     "default": "0",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "billed_qty",
     "label": "Billed so far",
     "type": "qty",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "material_norms",
@@ -4286,7 +4330,8 @@
     "name": "total_manpower",
     "label": "Manpower",
     "type": "int",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "hindrances",
@@ -4535,7 +4580,8 @@
     "name": "bill_no",
     "label": "RA bill no",
     "type": "int",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "period_to",
@@ -4546,43 +4592,50 @@
     "name": "this_bill_value",
     "label": "This bill (gross)",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "retention",
     "label": "Retention",
     "type": "money",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "security_deposit",
     "label": "Security deposit",
     "type": "money",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "mobilisation_recovery",
     "label": "Mobilisation recovery",
     "type": "money",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "income_tax_tds",
     "label": "Income tax TDS",
     "type": "money",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "gst_tds",
     "label": "GST TDS",
     "type": "money",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "labour_cess",
     "label": "Labour cess",
     "type": "money",
-    "default": "0"
+    "default": "0",
+    "auto": true
    },
    {
     "name": "material_recovery",
@@ -4652,7 +4705,8 @@
       "name": "previous_qty",
       "label": "Up to previous bill",
       "type": "qty",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "this_qty",
@@ -4965,7 +5019,8 @@
     "name": "gross",
     "label": "Work value",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "material_supplied",
@@ -5188,7 +5243,8 @@
     "name": "current_totaliser",
     "label": "Current totaliser",
     "type": "qty",
-    "unit": "L"
+    "unit": "L",
+    "help": "Enter once when the nozzle is set up; shift closings keep it current"
    },
    {
     "name": "stamping_valid_till",
@@ -5305,23 +5361,27 @@
     "label": "Litres sold",
     "type": "qty",
     "unit": "L",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "sale_value",
     "label": "Sale value",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "credit_sales",
     "label": "Credit sales",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "internal_issues",
     "label": "Fuel to group vehicles",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "upi_pos",
@@ -5589,7 +5649,8 @@
     "label": "Book stock",
     "type": "qty",
     "unit": "L",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "variance_litres",
@@ -5602,7 +5663,8 @@
    {
     "name": "variance_alert",
     "label": "Beyond tolerance",
-    "type": "bool"
+    "type": "bool",
+    "auto": true
    },
    {
     "name": "dip_rod_photo",
@@ -5649,7 +5711,7 @@
      "XG",
      "CNG"
     ],
-    "required": true
+    "help": "Taken from the tank if left blank"
    },
    {
     "name": "supplier_id",
@@ -5889,7 +5951,8 @@
     "name": "total",
     "label": "Total",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    }
   ],
   "rollups": [
@@ -6173,32 +6236,37 @@
    {
     "name": "km_since_last",
     "label": "Km since last fill",
-    "type": "number"
+    "type": "number",
+    "auto": true
    },
    {
     "name": "hours_since_last",
     "label": "Hours since last fill",
-    "type": "number"
+    "type": "number",
+    "auto": true
    },
    {
     "name": "km_per_l",
     "label": "Mileage",
     "type": "number",
     "unit": "km/L",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "l_per_hour",
     "label": "Consumption",
     "type": "number",
-    "unit": "L/hr"
+    "unit": "L/hr",
+    "auto": true
    },
    {
     "name": "variance_pct",
     "label": "Worse than norm by",
     "type": "number",
     "unit": "%",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "sensor_rise_l",
@@ -6210,12 +6278,14 @@
     "name": "mismatch_alert",
     "label": "Mismatch alert",
     "type": "bool",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "bunk_issue_id",
     "label": "Bunk issue",
-    "type": "text"
+    "type": "text",
+    "auto": true
    }
   ],
   "module": "fleet",
@@ -6315,7 +6385,8 @@
     "label": "Parts",
     "type": "money",
     "default": "0",
-    "sensitive": "cost"
+    "sensitive": "cost",
+    "auto": true
    },
    {
     "name": "total_cost",
@@ -6661,7 +6732,8 @@
      "closed"
     ],
     "default": "pending",
-    "list": true
+    "list": true,
+    "auto": true
    }
   ],
   "children": [
@@ -6691,7 +6763,8 @@
      {
       "name": "stock_at_location",
       "label": "Stock here now",
-      "type": "qty"
+      "type": "qty",
+      "auto": true
      },
      {
       "name": "photo",
@@ -6775,12 +6848,14 @@
    {
     "name": "taxable_value",
     "label": "Taxable",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "gst_amount",
     "label": "GST",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "grand_total",
@@ -6800,7 +6875,8 @@
      "short_closed"
     ],
     "default": "pending",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "terms",
@@ -6898,13 +6974,15 @@
       "name": "received_qty",
       "label": "Received so far",
       "type": "qty",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "last_rate",
       "label": "Last rate paid",
       "type": "money",
-      "sensitive": "rates"
+      "sensitive": "rates",
+      "auto": true
      }
     ],
     "key": "purchase.po.lines",
@@ -6986,7 +7064,8 @@
     "name": "value",
     "label": "Value",
     "type": "money",
-    "sensitive": "rates"
+    "sensitive": "rates",
+    "auto": true
    }
   ],
   "rollups": [
@@ -7156,7 +7235,8 @@
      {
       "name": "received_qty",
       "label": "Received",
-      "type": "qty"
+      "type": "qty",
+      "help": "Filled by the receiving location"
      },
      {
       "name": "rate",
@@ -7314,7 +7394,8 @@
      {
       "name": "system_qty",
       "label": "System qty",
-      "type": "qty"
+      "type": "qty",
+      "auto": true
      },
      {
       "name": "difference",
@@ -7911,7 +7992,8 @@
     "label": "Recovered so far",
     "type": "money",
     "default": "0",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "balance",
@@ -7965,54 +8047,64 @@
    {
     "name": "days_in_month",
     "label": "Days in month",
-    "type": "int"
+    "type": "int",
+    "auto": true
    },
    {
     "name": "gross",
     "label": "Gross",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    },
    {
     "name": "pf_employee",
     "label": "PF (employee)",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "pf_employer",
     "label": "PF (employer)",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "esi_employee",
     "label": "ESI (employee)",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "esi_employer",
     "label": "ESI (employer)",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "pt",
     "label": "Professional tax",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "tds",
     "label": "TDS",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "advance_recovery",
     "label": "Advance recovery",
-    "type": "money"
+    "type": "money",
+    "auto": true
    },
    {
     "name": "net_pay",
     "label": "Net pay",
     "type": "money",
-    "list": true
+    "list": true,
+    "auto": true
    }
   ],
   "rollups": [
@@ -8117,43 +8209,50 @@
       "name": "pf_employee",
       "label": "PF",
       "type": "money",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "pf_employer",
       "label": "PF employer",
       "type": "money",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "esi_employee",
       "label": "ESI",
       "type": "money",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "esi_employer",
       "label": "ESI employer",
       "type": "money",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "pt",
       "label": "PT",
       "type": "money",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "tds",
       "label": "TDS",
       "type": "money",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "advance_recovery",
       "label": "Advance",
       "type": "money",
-      "default": "0"
+      "default": "0",
+      "auto": true
      },
      {
       "name": "net_pay",
@@ -8164,7 +8263,8 @@
      {
       "name": "anomalies",
       "label": "Checks",
-      "type": "json"
+      "type": "json",
+      "auto": true
      }
     ],
     "key": "hr.payroll_run.lines",

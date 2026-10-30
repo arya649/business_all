@@ -36,7 +36,7 @@ export default {
         f.ref("jmf_id", "JMF", "bitumen.jmf", { required: true, quick: true, list: true }),
         f.qty("batch_mt", "Batch", { unit: "MT", required: true, quick: true, list: true, check: "batch_mt > 0" }),
         f.number("mix_temp_c", "Mix temperature", { unit: "°C", required: true, quick: true, list: true }),
-        f.bool("temp_alert", "Temperature outside band", { list: true }),
+        f.bool("temp_alert", "Temperature outside band", { list: true, auto: true }),
         f.qty("bitumen_kg", "Bitumen used", { unit: "kg" }),
         f.qty("burner_fuel_l", "Burner fuel", { unit: "L" }),
         f.datetime("start_at", "Start", { default: "now()" }),

@@ -3,3 +3,7 @@ node_modules/
 !.env.example
 .next/
 supabase/.temp/
+.dev/
+apps/web/.env.local
+apps/web/.next/
+apps/web/next-env.d.ts

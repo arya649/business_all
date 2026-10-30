@@ -467,7 +467,10 @@ begin
   end if;
 
   v_hidden := public.erp_hidden_fields(p_entity, v_co, v_loc);
-  v_cols := array(select c2 from unnest(public.erp_writable_columns(e.table_name)) c2 where not c2 = any(v_hidden));
+  -- hidden fields cannot be written, and nor can fields the system maintains
+  v_cols := array(select c2 from unnest(public.erp_writable_columns(e.table_name)) c2
+                  where not c2 = any(v_hidden)
+                    and not exists (select 1 from erp_field f where f.entity_key = p_entity and f.name = c2 and f.computed));
 
   v_data := (p_data - v_hidden) || jsonb_build_object('id', v_id, 'company_id', v_co, 'location_id', v_loc,
                                                      'tenant_id', (select tenant_id from company where id = v_co));
@@ -505,7 +508,9 @@ begin
   for c in select * from erp_entity where parent_key = p_entity loop
     if p_data ? c.child_name then
       execute format('delete from public.%I where parent_id = $1', c.table_name) using v_id;
-      v_line_cols := array(select c2 from unnest(public.erp_writable_columns(c.table_name)) c2 where not c2 = any(v_hidden));
+      v_line_cols := array(select c2 from unnest(public.erp_writable_columns(c.table_name)) c2
+                           where not c2 = any(v_hidden)
+                             and not exists (select 1 from erp_field f where f.entity_key = c.key and f.name = c2 and f.computed));
       v_n := 0;
       for v_line in select * from jsonb_array_elements(p_data -> c.child_name) loop
         v_n := v_n + 1;

@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* Colour tokens. Meanings are fixed app-wide: green = done, amber = needs attention, red = stopped / loss. */
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --soft: #eef1f5;
+  --line: #dde2ea;
+  --ink: #111827;
+  --muted: #5b6474;
+  --brand: #0f766e;
+  --brand-soft: #dff3f0;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --card: #161b22; --soft: #1f2630; --line: #2d3540; --ink: #e8edf3; --muted: #9aa5b4;
+    --brand: #2dd4bf; --brand-soft: #123d39; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1117; --card: #161b22; --soft: #1f2630; --line: #2d3540; --ink: #e8edf3; --muted: #9aa5b4;
+  --brand: #2dd4bf; --brand-soft: #123d39; color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans", "Noto Sans Telugu", sans-serif; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: .9rem; border: 1px solid var(--line);
+       background: var(--card); padding: .7rem 1.1rem; font-weight: 500; min-height: 46px; }
+.btn:disabled { opacity: .5; }
+.btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+:root[data-theme="dark"] .btn-primary, .dark .btn-primary { color: #04201d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-primary { color: #04201d; } }
+.tab { display: inline-flex; align-items: center; gap: .3rem; border-radius: .6rem; padding: .35rem .7rem; font-size: .85rem; color: var(--muted); }
+.tab-on { background: var(--brand-soft); color: var(--brand); font-weight: 500; }
+.card { border-radius: 1rem; border: 1px solid var(--line); background: var(--card); }
+
+@media print {
+  aside, header, nav, .btn, .tab { display: none !important; }
+  main { padding: 0 !important; }
+  body { background: #fff; color: #000; }
+}

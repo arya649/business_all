@@ -35,18 +35,30 @@ Why not a separate backend server:
 
 ## Status
 
+Built and covered by automated tests (156 database checks), plus a browser walkthrough on desktop and phone sizes:
+
 | Piece | State |
 |---|---|
-| Tenancy, companies, GSTINs, locations | built and tested |
-| Feature switches (plan ceiling → tenant → company → location → role → user) | built and tested |
-| Roles, permissions, `user_can()` | built and tested |
-| Tamper-evident audit log, record history | built and tested |
-| Document numbering with offline number blocks | built and tested |
-| Masters: party, item, vehicle (with duplicate detection) | built and tested |
-| Approvals engine | built and tested |
-| Notifications, documents store, owner dashboard | next |
-| Next.js web app (login, Super Admin, masters, approvals, history) | next |
-| Finance posting engine, CRM | Phase 1 |
+| Tenancy, companies, GSTINs, locations, users, roles | done |
+| Switches at plan / group / company / location / role / person, with field hiding and real "preview as" | done |
+| Tamper-evident audit log, History tab, audit search and chain check | done |
+| Numbering (GST 16-character limit), offline number blocks | done |
+| Masters with duplicate warnings; approvals with steps, escalation, no self-approval | done |
+| Module engine and 62 record types across all 11 modules | done |
+| Posting engine with inter-company mirror and reversals; stock ledger; trial balance; group elimination | done |
+| Business rules for bunk, RMC, weighbridge, fleet, purchase, projects, HR, bricks, hot-mix; billing runs | done |
+| Owner dashboard, leakage board | done |
+| Web/phone app: tiles, forms, lists, approvals, dashboard, reports, Super Admin, sync screen, 5 languages, voice, camera, GPS | done |
+| Offline: cached screens and pick-lists, outbox, phone-side numbering, retry and fix | done |
+| AI: scopes, `ai_call` door, audit as AI, API proxy, assistant screen, Zentrix agents module | done, not yet run against live Zentrix |
+
+Not built yet:
+- **GST:** e-invoice IRN and e-way bill generation (needs a GSP contract and keys); GSTR-1 / 2B / 3B files.
+- **Notifications:** WhatsApp and SMS sending, and the 8 am / 8 pm owner summary (needs a BSP account).
+- **Hardware:** the gateway service for the weighbridge scale, cameras, RFID / ANPR, biometrics, GPS / fuel sensors, ATG.
+- **Finance:** bank statement import and auto-matching; Tally export; period lock after filing.
+- **Field users:** a native Expo app (the web app installs on phones and works offline today); translations of field labels.
+- **Scale:** the first catalogue load takes 0.15–0.5 s per company; worth tuning for very large groups.
 
 ## Phases
 

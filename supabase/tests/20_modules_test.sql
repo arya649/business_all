@@ -423,6 +423,10 @@ select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-0000000
 select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000001') where kind = 'tare_drift'), 'leakage board: tare drift');
 select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000001') where kind = 'batch_deviation'), 'leakage board: batch deviation');
 select t.ok(not exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000001') where kind = 'unbilled_work'), 'leakage board: fully billed project work is not flagged');
+select t.ok((select array_agg(e ->> 'key' order by e ->> 'key') from jsonb_array_elements(
+              preview_screens('41000000-0000-0000-0000-00000000000b', '21000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000002')) e)
+            = '{bunk.dip,bunk.shift}', 'owner previews the cashier: exactly the shift and dip screens');
+select t.ok(my_context() -> 'user' ->> 'name' = 'Lakshmi Owner', 'after the preview the owner is still the owner');
 select t.ok(jsonb_array_length(my_context() -> 'companies') = 2, 'my_context lists the owner''s companies');
 select t.ok((select count(*) from erp_history('rmc.order', :'order_id')) >= 1, 'History tab for an RMC order');
 reset role;
@@ -431,5 +435,35 @@ select t.ok((select count(*) from owner_dashboard()) = 0, 'cashier gets no owner
 select t.ok((select count(*) from leakage_board('21000000-0000-0000-0000-000000000002')) = 0, 'or leakage board');
 select t.ok(jsonb_array_length(my_context() -> 'companies' -> 0 -> 'locations') = 1, 'cashier''s context: just the bunk');
 reset role;
+
+-- ===========================================================================
+\echo '== AI: scopes follow switches and roles; AI reads are audited as AI'
+-- ===========================================================================
+select t.login('41000000-0000-0000-0000-00000000000b');
+select t.ok('bunk.shift.create' = any(ai_scopes('21000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000002'))
+            and not ('rmc.orders.view' = any(ai_scopes('21000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000002')))
+            and 'agent.bunk_assistant' = any(ai_scopes('21000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000002'))
+            and not ('agent.owner_assistant' = any(ai_scopes('21000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000002'))),
+            'cashier''s AI token: bunk shift tools and the bunk assistant, nothing from RMC, no owner assistant');
+do $$ begin
+  perform ai_call('erp_list', '{}');
+  raise exception 'FAIL: user called the AI door directly';
+exception when insufficient_privilege then perform t.ok(true, 'only the AI service can use ai_call');
+end $$;
+reset role;
+insert into feature_flag (tenant_id, feature_key, level, level_id, state) values
+  ('11000000-0000-0000-0000-000000000001', 'ai', 'company', '21000000-0000-0000-0000-000000000002', 'off');
+select t.login('41000000-0000-0000-0000-00000000000b');
+select t.ok(not exists (select 1 from unnest(ai_scopes('21000000-0000-0000-0000-000000000002')) s where s like 'agent.%' or s like 'extract.%'),
+            'AI switched off for the bunk company: no agents, no document reading');
+reset role;
+delete from feature_flag where feature_key = 'ai' and level = 'company';
+select t.login('41000000-0000-0000-0000-00000000000a');
+select set_config('request.jwt.claims', json_build_object('sub', '41000000-0000-0000-0000-00000000000a', 'role', 'authenticated',
+                                                          'via', 'zentrix', 'correlation_id', 'zadk-test-1')::text, false);
+select t.ok(jsonb_array_length(ai_call('leakage_board', '{"company": "21000000-0000-0000-0000-000000000002"}') ) > 0, 'AI agent reads the leakage board as the owner');
+reset role;
+select t.ok((select actor_type || '|' || on_behalf_of::text || '|' || correlation_id from audit.log where action = 'ai.tool_call' order by id desc limit 1)
+            = 'ai_agent|41000000-0000-0000-0000-00000000000a|zadk-test-1', 'AI read is in the audit log as AI, for the owner, with the Zentrix id');
 
 \echo '== all module tests passed'
