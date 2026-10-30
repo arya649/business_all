@@ -33,7 +33,29 @@ export const useApp = () => useContext(Ctx)!;
 
 const PUBLIC = ["/login"];
 
+// Without the Supabase settings the app cannot start; say exactly what is missing instead of crashing.
 export function AppProvider({ children }: { children: ReactNode }) {
+  const missing = [
+    !process.env.NEXT_PUBLIC_SUPABASE_URL && "NEXT_PUBLIC_SUPABASE_URL",
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ].filter(Boolean) as string[];
+  if (missing.length) {
+    return (
+      <main className="min-h-dvh grid place-items-center p-6">
+        <div className="card max-w-lg p-6 space-y-3">
+          <h1 className="text-xl font-semibold">The app is not connected to its database yet</h1>
+          <p>These settings were missing when the app was built:</p>
+          <ul className="list-disc pl-6 font-mono text-sm">{missing.map((m) => <li key={m}>{m}</li>)}</ul>
+          <p className="text-sm text-[var(--muted)]">On Vercel: Project → Settings → Environment Variables, add them for Production,
+            then Deployments → Redeploy (they are built into the app, so a redeploy is needed).</p>
+        </div>
+      </main>
+    );
+  }
+  return <AppProviderInner>{children}</AppProviderInner>;
+}
+
+function AppProviderInner({ children }: { children: ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const [ready, setReady] = useState(false);
