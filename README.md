@@ -52,8 +52,8 @@ cd apps/web && cp .env.example .env.local && npm install && npm run build && npm
 `test-db.sh` runs every migration and 156 checks on a throwaway Postgres 16. `stack.sh` starts Postgres,
 PostgREST and a dev sign-in gateway with the demo group loaded; it needs the `postgrest` binary on the PATH.
 For `.env.local`, set `NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321` and `NEXT_PUBLIC_SUPABASE_ANON_KEY=dev-anon`.
-Sign in as `owner@demo.in` / `demo1234`, or with mobile `9000000002` (bunk cashier) or `9000000003` (site engineer)
-and code `123456`.
+Demo logins (password `demo1234`): `owner@demo.in`, `cashier@demo.in`, `engineer@demo.in`, `operator@demo.in`,
+`accounts@demo.in`. On the local stack, mobile numbers `9000000001`–`9000000005` also work with code `123456`.
 
 ## Deploy
 1. Create a Supabase project and run `supabase link --project-ref <ref>`, then `supabase db push`.

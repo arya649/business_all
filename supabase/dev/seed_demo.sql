@@ -1,6 +1,5 @@
 -- Demo group for the local dev stack: three companies, six locations, five people, a month of activity.
 -- All records go through the same erp_* functions as the apps (as the owner), so rules, postings and audit apply.
-\set ON_ERROR_STOP 1
 
 insert into tenant (id, name) values ('a0000000-0000-0000-0000-000000000001', 'Sri Lakshmi Group');
 insert into company (id, tenant_id, legal_name, short_code, pan) values
@@ -18,17 +17,44 @@ insert into location (id, tenant_id, company_id, gstin_id, type, name, short_cod
   ('e0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000002', 'bunk', 'NH16 Gannavaram bunk', 'GNV', 16.5400, 80.8000),
   ('e0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000003', 'plant', 'Ibrahimpatnam hot-mix plant', 'IBP', 16.5900, 80.5200);
 
-insert into auth.users (id, email, phone, encrypted_password) values
-  ('b0000000-0000-0000-0000-000000000001', 'owner@demo.in', '+919000000001', extensions.crypt('demo1234', extensions.gen_salt('bf'))),
-  ('b0000000-0000-0000-0000-000000000002', null, '+919000000002', null),
-  ('b0000000-0000-0000-0000-000000000003', null, '+919000000003', null),
-  ('b0000000-0000-0000-0000-000000000004', null, '+919000000004', null),
-  ('b0000000-0000-0000-0000-000000000005', 'accounts@demo.in', '+919000000005', extensions.crypt('demo1234', extensions.gen_salt('bf')));
+-- Demo logins (password demo1234). On real Supabase the GoTrue columns and identities are filled in;
+-- on the local stack the stub auth.users is used.
+do $$
+begin
+  if to_regclass('auth.identities') is not null then
+    insert into auth.users (instance_id, id, aud, role, email, phone, encrypted_password, email_confirmed_at, phone_confirmed_at,
+                            raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change,
+                            email_change_token_new, recovery_token)
+    select '00000000-0000-0000-0000-000000000000', v.id, 'authenticated', 'authenticated', v.email, v.phone,
+           extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(),
+           '{"provider": "email", "providers": ["email"]}', '{}', now(), now(), '', '', '', ''
+    from (values
+      ('b0000000-0000-0000-0000-000000000001'::uuid, 'owner@demo.in', '919000000001'),
+      ('b0000000-0000-0000-0000-000000000002'::uuid, 'cashier@demo.in', '919000000002'),
+      ('b0000000-0000-0000-0000-000000000003'::uuid, 'engineer@demo.in', '919000000003'),
+      ('b0000000-0000-0000-0000-000000000004'::uuid, 'operator@demo.in', '919000000004'),
+      ('b0000000-0000-0000-0000-000000000005'::uuid, 'accounts@demo.in', '919000000005')) v(id, email, phone);
+    insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+    select gen_random_uuid(), u.id, u.id::text, jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+           'email', now(), now(), now()
+    from auth.users u where u.email like '%@demo.in';
+  else
+    execute $q$
+      insert into auth.users (id, email, phone, encrypted_password)
+      select v.id, v.email, v.phone, extensions.crypt('demo1234', extensions.gen_salt('bf'))
+      from (values
+        ('b0000000-0000-0000-0000-000000000001'::uuid, 'owner@demo.in', '+919000000001'),
+        ('b0000000-0000-0000-0000-000000000002'::uuid, 'cashier@demo.in', '+919000000002'),
+        ('b0000000-0000-0000-0000-000000000003'::uuid, 'engineer@demo.in', '+919000000003'),
+        ('b0000000-0000-0000-0000-000000000004'::uuid, 'operator@demo.in', '+919000000004'),
+        ('b0000000-0000-0000-0000-000000000005'::uuid, 'accounts@demo.in', '+919000000005')) v(id, email, phone)$q$;
+  end if;
+end $$;
 insert into app_user (id, tenant_id, full_name, mobile, email, is_tenant_admin, preferred_language) values
   ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Venkata Rao (Owner)', '9000000001', 'owner@demo.in', true, 'en'),
-  ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'Srinu (Bunk cashier)', '9000000002', null, false, 'te'),
-  ('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'Ramesh (Site engineer)', '9000000003', null, false, 'te'),
-  ('b0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', 'Kiran (Plant operator)', '9000000004', null, false, 'te'),
+  ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'Srinu (Bunk cashier)', '9000000002', 'cashier@demo.in', false, 'te'),
+  ('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'Ramesh (Site engineer)', '9000000003', 'engineer@demo.in', false, 'te'),
+  ('b0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', 'Kiran (Plant operator)', '9000000004', 'operator@demo.in', false, 'te'),
   ('b0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', 'Lakshmi (Accounts)', '9000000005', 'accounts@demo.in', false, 'en');
 
 insert into role (id, tenant_id, name, ui_mode) values
