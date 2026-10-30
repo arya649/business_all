@@ -9,10 +9,11 @@ import { Users } from "./Users";
 import { ApprovalRules } from "./ApprovalRules";
 import { Companies } from "./Companies";
 import { AuditLog } from "./AuditLog";
+import { Devices } from "./Devices";
 
 const TABS = [
   ["switches", "Switches"], ["roles", "Roles & fields"], ["users", "Users"], ["approvals", "Approval rules"],
-  ["companies", "Companies & locations"], ["audit", "Audit log"],
+  ["companies", "Companies & locations"], ["devices", "Devices"], ["audit", "Audit log"],
 ] as const;
 
 // Everything complex lives here, so nobody else has to see it.
@@ -30,6 +31,7 @@ export default function Admin() {
       {tab === "users" && <Users />}
       {tab === "approvals" && <ApprovalRules />}
       {tab === "companies" && <Companies />}
+      {tab === "devices" && <Devices />}
       {tab === "audit" && <AuditLog />}
     </AppShell>
   );

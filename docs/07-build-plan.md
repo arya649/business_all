@@ -51,13 +51,19 @@ Built and covered by automated tests (156 database checks), plus a browser walkt
 | Web/phone app: tiles, forms, lists, approvals, dashboard, reports, Super Admin, sync screen, 5 languages, voice, camera, GPS | done |
 | Offline: cached screens and pick-lists, outbox, phone-side numbering, retry and fix | done |
 | AI: scopes, `ai_call` door, audit as AI, API proxy, assistant screen, Zentrix agents module | done, not yet run against live Zentrix |
+| Step-by-step mode (one question per screen, read aloud, big buttons), Telugu and Hindi field names, colour tiles | done |
+| P&L, balance sheet (group eliminated), ageing with WhatsApp reminders, party statement, day book, bunk DSR | done |
+| GST files: e-invoice (INV-01), e-way bill, GSTR-1 JSON; period lock after filing | done (direct IRP upload needs a GSP) |
+| Bank statement CSV import with automatic matching; Tally XML export | done |
+| Licences & documents register with expiry alerts; owner's WhatsApp summary | done |
+| Devices: weighbridge scale and biometric gateway for the site PC; GPS feed with fuel-drop alerts | done |
+| Sales pipeline board; RMC pour schedule | done |
 
 Not built yet:
-- **GST:** e-invoice IRN and e-way bill generation (needs a GSP contract and keys); GSTR-1 / 2B / 3B files.
-- **Notifications:** WhatsApp and SMS sending, and the 8 am / 8 pm owner summary (needs a BSP account).
-- **Hardware:** the gateway service for the weighbridge scale, cameras, RFID / ANPR, biometrics, GPS / fuel sensors, ATG.
-- **Finance:** bank statement import and auto-matching; Tally export; period lock after filing.
-- **Field users:** a native Expo app (the web app installs on phones and works offline today); translations of field labels.
+- **GST:** direct IRN / e-way bill generation through a GSP (files are ready to upload by hand today); GSTR-2B matching; GSTR-3B.
+- **Notifications:** automatic WhatsApp/SMS sending (needs a WhatsApp BSP account); today messages open in WhatsApp to send with one tap.
+- **Hardware:** camera snapshots and ANPR on the weighbridge, tank gauge (ATG) and dispenser automation.
+- **Field users:** a native Expo app (the web app installs on phones and works offline today); Tamil and Kannada field names.
 - **Scale:** the first catalogue load takes 0.15–0.5 s per company; worth tuning for very large groups.
 
 ## Phases

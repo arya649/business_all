@@ -7,6 +7,7 @@ import { display, humanize, toLocalInput } from "@/lib/format";
 import { RefPicker } from "./RefPicker";
 import { useApp } from "./AppProvider";
 import { sb } from "@/lib/supabase";
+import { option as trOption } from "@/lib/labels";
 
 const SPEECH_LANG: Record<string, string> = { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" };
 
@@ -64,7 +65,7 @@ export function FieldInput({ field, value, onChange, disabled, id }: {
             {opts.map((o) => (
               <button key={o} type="button" role="radio" aria-checked={value === o} disabled={disabled} onClick={() => onChange(value === o && !field.required ? null : o)}
                       className={`rounded-xl border px-3 py-2 text-sm ${value === o ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand)] font-medium" : "border-[var(--line)] bg-[var(--card)]"}`}>
-                {humanize(o)}
+                {trOption(o, app.lang, humanize(o))}
               </button>
             ))}
           </div>
@@ -73,7 +74,7 @@ export function FieldInput({ field, value, onChange, disabled, id }: {
       return (
         <select id={id} disabled={disabled} value={value ?? ""} onChange={(e) => onChange(e.target.value || null)} className={base}>
           <option value="">—</option>
-          {opts.map((o) => <option key={o} value={o}>{humanize(o)}</option>)}
+          {opts.map((o) => <option key={o} value={o}>{trOption(o, app.lang, humanize(o))}</option>)}
         </select>
       );
     }
@@ -86,7 +87,7 @@ export function FieldInput({ field, value, onChange, disabled, id }: {
             return (
               <button key={o} type="button" disabled={disabled} onClick={() => onChange(on ? cur.filter((x) => x !== o) : [...cur, o])}
                       className={`rounded-xl border px-3 py-2 text-sm ${on ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand)]" : "border-[var(--line)]"}`}>
-                {humanize(o)}
+                {trOption(o, app.lang, humanize(o))}
               </button>
             );
           })}

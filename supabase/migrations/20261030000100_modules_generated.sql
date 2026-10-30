@@ -998,7 +998,7 @@ select audit.track('public.crm_site_pin');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('crm.site_pin', 'crm', 'crm.site_hunting_map', 'crm_site_pin', 'Construction site spotted', 'Construction site spotteds', 'log', 'location', null, false, true, 'site_name', null, true, 'map-pin', 'Salespeople pin construction sites they pass; repeat visits are tracked and nearby sites suggested.', null, null, 18);
+('crm.site_pin', 'crm', 'crm.site_hunting_map', 'crm_site_pin', 'Construction site spotted', 'Construction sites spotted', 'log', 'location', null, false, true, 'site_name', null, true, 'map-pin', 'Salespeople pin construction sites they pass; repeat visits are tracked and nearby sites suggested.', null, null, 18);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values

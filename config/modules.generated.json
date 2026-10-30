@@ -2048,6 +2048,7 @@
   "key": "crm.site_pin",
   "feature": "crm.site_hunting_map",
   "label": "Construction site spotted",
+  "plural": "Construction sites spotted",
   "kind": "log",
   "scope": "location",
   "dated": true,
@@ -2127,7 +2128,6 @@
   ],
   "module": "crm",
   "table": "crm_site_pin",
-  "plural": "Construction site spotteds",
   "children": []
  },
  {

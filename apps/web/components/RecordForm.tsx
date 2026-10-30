@@ -9,6 +9,7 @@ import { generatePayroll, getRecord, history as getHistory, projectHealth, saveR
 import { FieldInput } from "./FieldInput";
 import { useApp } from "./AppProvider";
 import { StatusChip } from "./StatusChip";
+import { GuidedForm } from "./Guided";
 
 const SYSTEM = new Set(["id", "tenant_id", "company_id", "location_id", "created_by", "created_at", "updated_by", "updated_at",
   "device_id", "geo", "submitted_at", "approved_at", "approval_request_id", "_can", "_pending"]);
@@ -22,6 +23,14 @@ export function RecordForm({ entity, id }: { entity: Entity; id: string | null }
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(app.ctx?.ui_mode !== "simple");
   const [tab, setTab] = useState<"form" | "history">("form");
+  // step by step is the default for field roles on a phone; anyone can switch
+  const [guided, setGuided] = useState(false);
+  const [savedRec, setSavedRec] = useState<Row | null>(null);
+  useEffect(() => {
+    const pref = localStorage.getItem("erp.guided");
+    setGuided(pref ? pref === "on" : app.ctx?.ui_mode === "simple" && window.innerWidth < 768);
+  }, [app.ctx?.ui_mode]);
+  const setGuidedPref = (on: boolean) => { localStorage.setItem("erp.guided", on ? "on" : "off"); setGuided(on); };
 
   useEffect(() => {
     if (!id) {
@@ -53,7 +62,7 @@ export function RecordForm({ entity, id }: { entity: Entity; id: string | null }
     return [...m.entries()];
   }, [visibleFields]);
 
-  const save = async (then?: "submit") => {
+  const save = async (then?: "submit", fromGuided = false) => {
     if (needLocation) { setError("Choose a location at the top first."); return; }
     setBusy(true);
     setError(null);
@@ -87,11 +96,13 @@ export function RecordForm({ entity, id }: { entity: Entity; id: string | null }
       const { record, queued } = await saveRecord(entity, payload);
       if (queued) {
         app.toast(app.t("saved_offline"));
+        if (fromGuided) { setSavedRec(record); return; }
         router.push(`/m?e=${entity.key}`);
         return;
       }
       let r = record;
       if (then === "submit") r = await setStatus(entity.key, record.id, "submit");
+      if (fromGuided) { setRec(r); setData(r); setSavedRec(r); return; }
       app.toast(then === "submit" ? humanize(r.status) : app.t("saved"));
       setRec(r);
       setData(r);
@@ -114,6 +125,22 @@ export function RecordForm({ entity, id }: { entity: Entity; id: string | null }
 
   if (error && !rec && id) return <p className="text-red-600">{error}</p>;
 
+  if (guided && editable && tab === "form" && (!id || rec)) {
+    return (
+      <>
+        {error && <div role="alert" className="mb-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 p-4 text-lg">{error}</div>}
+        {needLocation && <div className="mb-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 p-3">Choose a location at the top first.</div>}
+        <GuidedForm entity={entity} data={data} setData={setData} busy={busy} saved={savedRec}
+          // a new record with lines filled in later (e.g. a shift) is opened first and closed later; others go for approval straight away
+          onSave={(submit) => save(submit && entity.workflow && (rec || entity.children.length === 0) ? "submit" : undefined, true)}
+          onFullForm={() => setGuidedPref(false)} />
+        {savedRec && !rec?._pending && entity.children.length > 0 && savedRec.status !== "approved" && savedRec.status !== "submitted" && (
+          <a className="btn w-full max-w-sm mx-auto mt-3 !min-h-14 text-lg flex" href={`/m?e=${entity.key}&id=${savedRec.id}`}>{app.t("continue")}</a>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="max-w-3xl">
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -127,6 +154,7 @@ export function RecordForm({ entity, id }: { entity: Entity; id: string | null }
               <History size={14} /> {app.t("history")}
             </button>
             <button className="tab" onClick={() => window.print()} aria-label="Print"><Printer size={14} /></button>
+            {editable && <button className="tab" onClick={() => setGuidedPref(true)}>{app.t("step_by_step")}</button>}
           </div>
         )}
       </div>
@@ -135,6 +163,7 @@ export function RecordForm({ entity, id }: { entity: Entity; id: string | null }
         <form onSubmit={(e) => { e.preventDefault(); save(); }} className="space-y-5">
           {needLocation && <div className="rounded-xl bg-amber-50 dark:bg-amber-900/30 p-3 text-sm">Choose a location at the top first.</div>}
           {entity.key === "finance.purchase_invoice" && editable && <ScanBill onFill={(d) => setData({ ...data, ...d })} />}
+          {!rec && editable && <button type="button" className="text-sm text-[var(--brand)] underline" onClick={() => setGuidedPref(true)}>{app.t("step_by_step")}</button>}
 
           {entity.dated && (
             <Labeled label="Date" id="f-doc_date">
@@ -178,6 +207,7 @@ export function RecordForm({ entity, id }: { entity: Entity; id: string | null }
             }}>Calculate payroll from attendance</button>
           )}
           {entity.key === "infra.project" && rec && <ProjectHealth id={rec.id} />}
+          {entity.key === "finance.sales_invoice" && rec && <GstFiles id={rec.id} docNo={rec.doc_no} />}
 
           {error && <div role="alert" className="rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 p-3 text-sm">{error}</div>}
 
@@ -298,6 +328,32 @@ function ProjectHealth({ id }: { id: string }) {
       <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {items.map(([k, v]) => <div key={k}><dt className="text-xs text-[var(--muted)]">{k}</dt><dd className="text-lg font-semibold tabular-nums">{v}</dd></div>)}
       </dl>
+    </section>
+  );
+}
+
+// e-Invoice and e-way bill files for the portals, with what is missing listed first.
+function GstFiles({ id, docNo }: { id: string; docNo: string }) {
+  const app = useApp();
+  const [missing, setMissing] = useState<string[]>([]);
+  const get = async (fn: "einvoice_json" | "ewaybill_json") => {
+    const { sb } = await import("@/lib/supabase");
+    const { downloadText } = await import("@/lib/download");
+    const { data, error } = await sb().rpc(fn, { p_invoice: id });
+    if (error) return app.toast(error.message, "error");
+    setMissing(data._missing ?? []);
+    const { _missing, ...clean } = data;
+    downloadText(`${fn === "einvoice_json" ? "einvoice" : "ewaybill"}_${String(docNo).replace(/\//g, "-")}.json`,
+                 JSON.stringify(fn === "einvoice_json" ? [clean] : clean, null, 1));
+  };
+  return (
+    <section className="rounded-2xl border border-[var(--line)] p-4 space-y-2">
+      <h2 className="font-semibold">GST</h2>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="btn" onClick={() => get("einvoice_json")}>e-Invoice file (IRP)</button>
+        <button type="button" className="btn" onClick={() => get("ewaybill_json")}>e-Way bill file</button>
+      </div>
+      {missing.length > 0 && <p className="text-sm text-amber-700 dark:text-amber-300">Fill before uploading: {missing.join(", ")}</p>}
     </section>
   );
 }

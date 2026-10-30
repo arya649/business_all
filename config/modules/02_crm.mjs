@@ -94,7 +94,7 @@ export default {
       ],
     },
     {
-      key: "crm.site_pin", feature: "crm.site_hunting_map", label: "Construction site spotted", kind: "log", scope: "location",
+      key: "crm.site_pin", feature: "crm.site_hunting_map", label: "Construction site spotted", plural: "Construction sites spotted", kind: "log", scope: "location",
       dated: true, mobile: true, icon: "map-pin", title: "site_name",
       description: "Salespeople pin construction sites they pass; repeat visits are tracked and nearby sites suggested.",
       fields: [

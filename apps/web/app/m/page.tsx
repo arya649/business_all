@@ -10,7 +10,7 @@ import { RecordForm } from "@/components/RecordForm";
 import { StatusChip } from "@/components/StatusChip";
 import { listRecords, lookup } from "@/lib/erp";
 import { isNetworkError, onOutboxChange, outbox, type OutboxItem } from "@/lib/offline";
-import { display } from "@/lib/format";
+import { display, num } from "@/lib/format";
 import type { Entity, Row } from "@/lib/types";
 
 // One page for every module's registers: ?e=<record type> lists them, &id=<id|new> opens one.
@@ -46,6 +46,8 @@ function Records() {
 
 function RecordList({ entity }: { entity: Entity }) {
   const app = useApp();
+  const boardable = entity.key === "crm.lead" || entity.key === "rmc.order";
+  const [view, setView] = useState<"list" | "board">(boardable ? "board" : "list");
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
@@ -103,6 +105,13 @@ function RecordList({ entity }: { entity: Entity }) {
           </select>
         )}
       </div>
+      {boardable && (
+        <div className="flex gap-1">
+          <button className={`tab ${view === "board" ? "tab-on" : ""}`} onClick={() => setView("board")}>{entity.key === "crm.lead" ? "Pipeline" : "Pour schedule"}</button>
+          <button className={`tab ${view === "list" ? "tab-on" : ""}`} onClick={() => setView("list")}>List</button>
+        </div>
+      )}
+      {boardable && view === "board" && <Board entity={entity} rows={rows} labels={labels} onMoved={() => load(0)} />}
       {error && <p className={`text-sm ${app.online ? "text-red-600" : "text-amber-700 dark:text-amber-300"}`}>{error}</p>}
       {waiting.length > 0 && (
         <ul className="space-y-2">
@@ -116,7 +125,7 @@ function RecordList({ entity }: { entity: Entity }) {
       )}
 
       {/* phones: cards */}
-      <ul className="md:hidden space-y-2">
+      <ul className={`md:hidden space-y-2 ${boardable && view === "board" ? "hidden" : ""}`}>
         {rows.map((r) => (
           <li key={r.id}>
             <Link href={`/m?e=${entity.key}&id=${r.id}`} className="card block p-3">
@@ -133,7 +142,7 @@ function RecordList({ entity }: { entity: Entity }) {
       </ul>
 
       {/* desktop: table */}
-      <div className="hidden md:block card overflow-x-auto">
+      <div className={`hidden ${boardable && view === "board" ? "" : "md:block"} card overflow-x-auto`}>
         <table className="w-full text-sm">
           <thead className="text-left text-[var(--muted)] border-b border-[var(--line)]">
             <tr>
@@ -158,6 +167,78 @@ function RecordList({ entity }: { entity: Entity }) {
 
       {!loading && rows.length === 0 && waiting.length === 0 && <p className="text-[var(--muted)] py-6 text-center">{app.t("nothing_yet")}</p>}
       {rows.length < total && <button className="btn w-full" onClick={() => load(rows.length)}>{app.t("more")}</button>}
+    </div>
+  );
+}
+
+const STAGES = ["new", "contacted", "site_visit", "quote_sent", "trial", "negotiation", "won", "lost"];
+
+// Leads as a pipeline (move a card with one tap), RMC orders as a pour schedule by day and time.
+function Board({ entity, rows, labels, onMoved }: { entity: Entity; rows: Row[]; labels: Record<string, string>; onMoved: () => void }) {
+  const app = useApp();
+  if (entity.key === "crm.lead") {
+    const move = async (r: Row, dir: 1 | -1) => {
+      const next = STAGES[Math.min(Math.max(STAGES.indexOf(r.stage ?? "new") + dir, 0), STAGES.length - 1)];
+      try { await (await import("@/lib/erp")).saveRecord(entity, { id: r.id, stage: next }); onMoved(); } catch (e: any) { app.toast(e.message, "error"); }
+    };
+    return (
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {STAGES.map((s) => {
+          const list = rows.filter((r) => (r.stage ?? "new") === s);
+          return (
+            <section key={s} className="min-w-60 w-60 shrink-0 rounded-2xl bg-[var(--soft)] p-2">
+              <h3 className="px-1 py-1 text-sm font-semibold flex">{s.replace("_", " ")}<span className="ml-auto text-[var(--muted)]">{list.length}</span></h3>
+              <ul className="space-y-2">
+                {list.map((r) => (
+                  <li key={r.id} className="card p-2 text-sm">
+                    <Link href={`/m?e=${entity.key}&id=${r.id}`} className="font-medium text-[var(--brand)]">{r.contact_name}</Link>
+                    <div className="text-[var(--muted)]">{r.business_line?.replace("_", " ")} · {r.expected_value ? display("money", r.expected_value) : ""}</div>
+                    {r.next_follow_up_at && <div className="text-xs">Call: {display("datetime", r.next_follow_up_at)}</div>}
+                    <div className="mt-1 flex gap-1">
+                      {r.mobile && <a className="tab !px-2" href={`tel:${r.mobile}`}>Call</a>}
+                      {r.mobile && <a className="tab !px-2" target="_blank" href={`https://wa.me/91${String(r.mobile).slice(-10)}`}>WhatsApp</a>}
+                      <button className="tab !px-2 ml-auto" aria-label="Move back" onClick={() => move(r, -1)}>←</button>
+                      <button className="tab !px-2" aria-label="Move forward" onClick={() => move(r, 1)}>→</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+    );
+  }
+  // RMC: orders by pour day, in time order, with trucks needed for the pour rate
+  const byDay = new Map<string, Row[]>();
+  for (const r of [...rows].sort((a, b) => String(a.pour_start).localeCompare(String(b.pour_start)))) {
+    const d = String(r.pour_start ?? r.doc_date).slice(0, 10);
+    byDay.set(d, [...(byDay.get(d) ?? []), r]);
+  }
+  return (
+    <div className="space-y-4">
+      {[...byDay.entries()].map(([d, list]) => (
+        <section key={d}>
+          <h3 className="font-semibold mb-2">{display("date", d)} · {num(list.reduce((a, r) => a + Number(r.qty_m3 ?? 0), 0))} m³</h3>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {list.map((r) => {
+              const trucks = Math.ceil(Number(r.pour_rate_m3_hr ?? 15) / 7 * 1.5);
+              return (
+                <li key={r.id} className="card p-3 text-sm">
+                  <div className="flex gap-2">
+                    <span className="font-mono">{new Date(r.pour_start).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                    <Link href={`/m?e=${entity.key}&id=${r.id}`} className="font-medium text-[var(--brand)] truncate">{labels[r.party_id] ?? r.site_name}</Link>
+                    <span className="ml-auto">{r.grade}</span>
+                  </div>
+                  <div className="text-[var(--muted)]">{r.site_name} · {num(r.qty_m3)} m³ · delivered {num(r.delivered_m3 ?? 0)}</div>
+                  <div className="text-xs mt-1">{r.pump !== "none" ? `${r.pump} pump · ` : ""}≈ {trucks} transit mixers at {num(r.pour_rate_m3_hr ?? 15)} m³/hr
+                    {r.credit_check === "over_limit" && <span className="ml-1 text-red-600">· over credit limit</span>}</div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

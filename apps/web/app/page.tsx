@@ -6,10 +6,26 @@ import { AppShell } from "@/components/AppShell";
 import { useApp } from "@/components/AppProvider";
 import { Icon } from "@/components/Icon";
 import { approvalCards } from "@/lib/erp";
+import { SpeakButton } from "@/components/Guided";
 
 const MODULES: Record<string, string> = {
   bunk: "Petrol bunk", rmc: "RMC plant", weighbridge: "Weighbridge", bitumen: "Hot-mix plant", bricks: "Bricks", infra: "Projects",
   fleet: "Fleet & machines", purchase: "Purchase & stores", hr: "HR & payroll", crm: "Sales & leads", finance: "Accounts",
+};
+
+// Each business has its own colour so people find their tiles without reading.
+const TILE_COLORS: Record<string, string> = {
+  bunk: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200",
+  rmc: "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100",
+  weighbridge: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200",
+  bitumen: "bg-stone-300 text-stone-900 dark:bg-stone-700 dark:text-stone-100",
+  bricks: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200",
+  infra: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-100",
+  fleet: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200",
+  purchase: "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-100",
+  hr: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-200",
+  crm: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200",
+  finance: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200",
 };
 
 // Home is today's work as big tiles, not menus. Field users see only the entries they make;
@@ -37,11 +53,14 @@ export default function Home() {
           <h2 className="text-sm font-semibold text-[var(--muted)] mb-2">{app.t("today_jobs")}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {quick.map((e) => (
-              <Link key={e.key} href={`/m?e=${e.key}&id=new`}
-                    className="card flex flex-col items-start gap-3 p-4 hover:border-[var(--brand)] min-h-28">
-                <span className="rounded-xl bg-[var(--brand-soft)] text-[var(--brand)] p-2.5"><Icon name={e.icon} /></span>
-                <span className="font-medium leading-tight">{e.label}</span>
-              </Link>
+              <div key={e.key} className="relative">
+                <Link href={`/m?e=${e.key}&id=new`}
+                      className="card flex flex-col items-start gap-3 p-4 hover:border-[var(--brand)] min-h-32">
+                  <span className={`rounded-2xl p-3 ${TILE_COLORS[e.module] ?? "bg-[var(--brand-soft)] text-[var(--brand)]"}`}><Icon name={e.icon} size={32} /></span>
+                  <span className="text-lg font-semibold leading-tight pr-8">{e.label}</span>
+                </Link>
+                <SpeakButton text={e.label} className="absolute top-3 right-3" />
+              </div>
             ))}
           </div>
         </section>

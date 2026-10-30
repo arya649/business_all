@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MessageCircle } from "lucide-react";
+import { sb } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { useApp } from "@/components/AppProvider";
 import { leakageBoard, ownerDashboard } from "@/lib/erp";
@@ -35,7 +36,12 @@ export default function Dashboard() {
   ];
 
   return (
-    <AppShell title={app.t("dashboard")}>
+    <AppShell title={app.t("dashboard")} actions={
+      <button className="btn" onClick={async () => {
+        const { data, error } = await sb().rpc("owner_summary_text", {});
+        if (error) return app.toast(error.message, "error");
+        window.open(`https://wa.me/?text=${encodeURIComponent(data)}`, "_blank");
+      }}><MessageCircle size={18} /> Yesterday on WhatsApp</button>}>
       {rows === null ? <p className="text-[var(--muted)]">…</p> : (
         <div className="space-y-6">
           <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

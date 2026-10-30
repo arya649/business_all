@@ -34,6 +34,12 @@ const T: Record<string, Partial<Record<Lang, string>>> = {
   take_photo: { te: "ఫోటో తీయండి", hi: "फ़ोटो लें", ta: "புகைப்படம் எடு", kn: "ಫೋಟೋ ತೆಗೆಯಿರಿ" },
   speak: { te: "మాట్లాడండి", hi: "बोलिए", ta: "பேசுங்கள்", kn: "ಮಾತನಾಡಿ" },
   add_line: { te: "లైన్ జోడించు", hi: "लाइन जोड़ें", ta: "வரி சேர்", kn: "ಸಾಲು ಸೇರಿಸಿ" },
+  next: { te: "తరువాత", hi: "आगे", ta: "அடுத்து", kn: "ಮುಂದೆ" },
+  check_and_save: { te: "ఒకసారి చూసి సేవ్ చేయండి", hi: "एक बार देखकर सेव करें", ta: "சரிபார்த்து சேமிக்கவும்", kn: "ಪರಿಶೀಲಿಸಿ ಉಳಿಸಿ" },
+  full_form: { te: "పూర్తి ఫారం చూపించు", hi: "पूरा फॉर्म दिखाएं", ta: "முழு படிவம்", kn: "ಪೂರ್ಣ ಫಾರ್ಮ್" },
+  step_by_step: { te: "ఒక్కొక్కటిగా", hi: "एक-एक करके", ta: "படிப்படியாக", kn: "ಹಂತ ಹಂತವಾಗಿ" },
+  continue: { te: "కొనసాగించు", hi: "जारी रखें", ta: "தொடரவும்", kn: "ಮುಂದುವರಿಸಿ" },
+  voice_on: { te: "మాట వినిపించు", hi: "आवाज़ चालू", ta: "குரல் இயக்கு", kn: "ಧ್ವನಿ ಆನ್" },
 };
 
 const EN: Record<string, string> = {
@@ -45,6 +51,8 @@ const EN: Record<string, string> = {
   not_enabled: "This module is not enabled for your company or your account.", nothing_yet: "Nothing here yet",
   sign_out: "Sign out", location: "Location", company: "Company", today_jobs: "Today's work", more: "More",
   reason: "Reason", take_photo: "Take photo", speak: "Speak", add_line: "Add line",
+  next: "Next", check_and_save: "Check and save", full_form: "Show the full form", step_by_step: "Step by step",
+  continue: "Continue", voice_on: "Read aloud",
 };
 
 export function t(key: string, lang: Lang): string {

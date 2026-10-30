@@ -15,6 +15,7 @@ export function Companies() {
   const [co, setCo] = useState({ legal_name: "", short_code: "", pan: "" });
   const [loc, setLoc] = useState({ company_id: "", name: "", short_code: "", type: "plant", gstin_id: "" });
   const [gst, setGst] = useState({ company_id: "", gstin: "" });
+  const [locks, setLocks] = useState<any[]>([]);
 
   const load = async () => {
     const [c, l, g] = await Promise.all([
@@ -23,6 +24,7 @@ export function Companies() {
       sb().from("company_gstin").select("*").eq("tenant_id", tenant),
     ]);
     setCos(c.data ?? []); setLocs(l.data ?? []); setGstins(g.data ?? []);
+    setLocks((await sb().from("period_lock").select("*").eq("tenant_id", tenant)).data ?? []);
   };
   useEffect(() => { load(); }, []); // eslint-disable-line
   const done = async (p: PromiseLike<{ error: any }>) => { const { error } = await p; if (error) app.toast(error.message, "error"); else { await load(); await app.reload(); } };
@@ -34,6 +36,14 @@ export function Companies() {
         <section key={c.id} className="card p-4">
           <h3 className="font-semibold">{c.legal_name} <span className="text-sm text-[var(--muted)]">{c.short_code}{c.pan ? ` · PAN ${c.pan}` : ""}</span></h3>
           <div className="text-sm text-[var(--muted)]">GSTIN: {gstins.filter((g) => g.company_id === c.id).map((g) => g.gstin).join(", ") || "none"}</div>
+          <label className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            Entries locked up to (after GST filing):
+            <input type="date" aria-label="Locked up to" defaultValue={locks.find((x) => x.company_id === c.id)?.locked_upto ?? ""}
+                   className="rounded-lg border border-[var(--line)] bg-[var(--card)] px-2 py-1"
+                   onChange={(e) => done(e.target.value
+                     ? sb().from("period_lock").upsert({ company_id: c.id, tenant_id: tenant, locked_upto: e.target.value, reason: "GST filed" })
+                     : sb().from("period_lock").delete().eq("company_id", c.id))} />
+          </label>
           <ul className="mt-2 text-sm grid sm:grid-cols-2 gap-1">
             {locs.filter((l) => l.company_id === c.id).map((l) => <li key={l.id}>• {l.name} <span className="text-[var(--muted)]">({l.type}, {l.short_code})</span></li>)}
           </ul>

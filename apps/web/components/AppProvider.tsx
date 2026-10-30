@@ -6,6 +6,7 @@ import { sb } from "@/lib/supabase";
 import { getCatalog, getContext, lookup } from "@/lib/erp";
 import { flushOutbox, onOutboxChange, outbox, reserveBlocks } from "@/lib/offline";
 import { t as tr, type Lang } from "@/lib/i18n";
+import { label as trLabel } from "@/lib/labels";
 import type { AppContext, Company, Entity, Location } from "@/lib/types";
 
 interface AppState {
@@ -39,7 +40,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ctx, setCtx] = useState<AppContext | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
-  const [catalog, setCatalog] = useState<Entity[]>([]);
+  const [rawCatalog, setCatalog] = useState<Entity[]>([]);
   const [lang, setLangState] = useState<Lang>("en");
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
@@ -78,6 +79,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // screen and field names in the person's language
+  const catalog = useMemo(() => rawCatalog.map((e) => ({
+    ...e, label: trLabel(e.label, lang), label_plural: trLabel(e.label_plural, lang),
+    fields: e.fields.map((f) => ({ ...f, label: trLabel(f.label, lang) })),
+    children: e.children.map((c) => ({ ...c, label: trLabel(c.label, lang), fields: c.fields.map((f) => ({ ...f, label: trLabel(f.label, lang) })) })),
+  })), [rawCatalog, lang]);
 
   const company = useMemo(() => ctx?.companies.find((c) => c.id === companyId) ?? null, [ctx, companyId]);
   const location = useMemo(() => company?.locations.find((l) => l.id === locationId) ?? null, [company, locationId]);

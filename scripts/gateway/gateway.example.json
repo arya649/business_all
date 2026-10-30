@@ -1,0 +1,7 @@
+{
+  "supabase_url": "https://<project>.supabase.co",
+  "anon_key": "<publishable key>",
+  "weighbridge": { "serial": "<device serial from Admin → Devices>", "key": "<device key>", "serial_device": "/dev/ttyUSB0",
+                   "stable_seconds": 3, "min_kg": 1000, "http_port": 8085 },
+  "biometric": { "serial": "<device serial>", "key": "<device key>", "port": 8081, "code_prefix": "VJA" }
+}
