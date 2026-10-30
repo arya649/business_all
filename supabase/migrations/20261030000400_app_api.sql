@@ -25,6 +25,11 @@ language sql stable security definer set search_path = public as $$
   )
 $$;
 
+-- Extra leakage rules added by later migrations (licences, fuel drops) plug in here.
+create function public.leakage_board_extra(p_company uuid)
+returns table (kind text, severity text, title text, detail text, entity text, record_id uuid, location_id uuid, amount numeric, doc_date date)
+language sql stable as $$ select null::text, null::text, null::text, null::text, null::text, null::uuid, null::uuid, null::numeric, null::date where false $$;
+
 -- Leakage board: every rule that finds money slipping away, in plain words, with a link to the record.
 create function public.leakage_board(p_company uuid)
 returns table (kind text, severity text, title text, detail text, entity text, record_id uuid, location_id uuid,
@@ -93,6 +98,8 @@ language sql stable security definer set search_path = public as $$
            null, vd.vehicle_id, null, null, vd.expires_on
     from vehicle_documents_expiring vd join vehicle v on v.id = vd.vehicle_id
     where v.owning_company_id = p_company
+    union all
+    select * from public.leakage_board_extra(p_company)
   ) x(kind, severity, title, detail, entity, record_id, location_id, amount, doc_date)
   where public.is_tenant_admin() or public.user_can('core.dashboard.leakage_board', 'view', p_company, null)
   order by case severity when 'high' then 0 else 1 end, amount desc nulls last

@@ -2,6 +2,59 @@
 -- Module tables: group admins may read them directly (reports); everyone else goes through the erp_* functions,
 -- which apply permissions and field visibility.
 
+-- Licence / document (core.document)
+-- Every licence, certificate, tender, work order and drawing, with expiry reminders.
+create table public.core_document (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenant,
+  company_id uuid not null references public.company,
+  location_id uuid references public.location,
+  category text check (category in ('peso_licence', 'weights_measures', 'pollution_consent', 'factory_licence', 'labour_licence', 'trade_licence', 'fire_noc', 'gst_certificate', 'msme', 'calibration', 'insurance', 'tender', 'work_order', 'drawing', 'agreement', 'bank_guarantee', 'other')),
+  title text,
+  doc_number text,
+  issued_by text,
+  issued_on date,
+  expires_on date,
+  remind_days integer default 30,
+  location_ref_id uuid,
+  vehicle_id uuid,
+  party_id uuid,
+  amount numeric(14,2),
+  files text[],
+  notes text,
+  device_id text,
+  geo text,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
+create index on public.core_document (company_id, location_id);
+alter table public.core_document enable row level security;
+create policy admin_read on public.core_document for select using (public.is_tenant_admin(tenant_id));
+create trigger erp_touch before update on public.core_document for each row execute function public.erp_touch();
+select audit.track('public.core_document');
+
+insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
+  dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
+('core.document', 'core', 'core.documents.register', 'core_document', 'Licence / document', 'Licences & documents', 'master', 'company', null, false, false, 'title', null, false, 'file-check', 'Every licence, certificate, tender, work order and drawing, with expiry reminders.', null, null, 0);
+
+insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
+  quick, in_list, unit, help, section, default_value, sort) values
+('core.document', 'category', 'Type', 'select', true, '["peso_licence","weights_measures","pollution_consent","factory_licence","labour_licence","trade_licence","fire_noc","gst_certificate","msme","calibration","insurance","tender","work_order","drawing","agreement","bank_guarantee","other"]'::jsonb, null, false, null, false, true, null, null, null, null, 0),
+('core.document', 'title', 'Title', 'text', true, null, null, false, null, false, true, null, null, null, null, 1),
+('core.document', 'doc_number', 'Number', 'text', false, null, null, false, null, false, true, null, null, null, null, 2),
+('core.document', 'issued_by', 'Issued by', 'text', false, null, null, false, null, false, false, null, null, null, null, 3),
+('core.document', 'issued_on', 'Issued on', 'date', false, null, null, false, null, false, false, null, null, null, null, 4),
+('core.document', 'expires_on', 'Valid till', 'date', false, null, null, false, null, false, true, null, null, null, null, 5),
+('core.document', 'remind_days', 'Remind before (days)', 'int', false, null, null, false, null, false, false, null, null, null, '30', 6),
+('core.document', 'location_ref_id', 'For location', 'ref', false, null, 'location', false, null, false, false, null, null, null, null, 7),
+('core.document', 'vehicle_id', 'For vehicle', 'ref', false, null, 'vehicle', false, null, false, false, null, null, null, null, 8),
+('core.document', 'party_id', 'With party', 'ref', false, null, 'party', false, null, false, false, null, null, null, null, 9),
+('core.document', 'amount', 'Amount / fee', 'money', false, null, null, false, null, false, false, null, null, null, null, 10),
+('core.document', 'files', 'Scans / photos', 'photos', false, null, null, false, null, false, false, null, null, null, null, 11),
+('core.document', 'notes', 'Notes', 'longtext', false, null, null, false, null, false, false, null, null, null, null, 12);
+
 -- Ledger (finance.ledger)
 -- Chart of accounts. Codes (SALES_RMC, GST_OUTPUT...) are what posting rules refer to.
 create table public.finance_ledger (
@@ -35,7 +88,7 @@ select audit.track('public.finance_ledger');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.ledger', 'finance', 'finance.ledger', 'finance_ledger', 'Ledger', 'Ledgers', 'master', 'company', null, false, false, 'name', null, false, null, 'Chart of accounts. Codes (SALES_RMC, GST_OUTPUT...) are what posting rules refer to.', null, null, 0);
+('finance.ledger', 'finance', 'finance.ledger', 'finance_ledger', 'Ledger', 'Ledgers', 'master', 'company', null, false, false, 'name', null, false, null, 'Chart of accounts. Codes (SALES_RMC, GST_OUTPUT...) are what posting rules refer to.', null, null, 1);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -119,10 +172,10 @@ create trigger erp_rollup before insert or update on public.finance_journal for 
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.journal', 'finance', 'finance.journal', 'finance_journal', 'Journal', 'Journals', 'transaction', 'company', 'JV/{FY}/{SEQ:5}', true, true, 'narration', 'total_debit', false, null, 'Double-entry voucher. Posted automatically from module documents, or entered by hand.', null, null, 1);
+('finance.journal', 'finance', 'finance.journal', 'finance_journal', 'Journal', 'Journals', 'transaction', 'company', 'JV/{FY}/{SEQ:5}', true, true, 'narration', 'total_debit', false, null, 'Double-entry voucher. Posted automatically from module documents, or entered by hand.', null, null, 2);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('finance.journal.lines', 'finance', 'finance.journal', 'finance_journal_lines', 'finance.journal', 'lines', 'Lines', 'Lines', 'child', 'company', 2);
+('finance.journal.lines', 'finance', 'finance.journal', 'finance_journal_lines', 'finance.journal', 'lines', 'Lines', 'Lines', 'child', 'company', 3);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -231,10 +284,10 @@ create trigger erp_rollup before insert or update on public.finance_sales_invoic
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.sales_invoice', 'finance', 'finance.sales_invoice', 'finance_sales_invoice', 'Sales invoice', 'Sales invoices', 'transaction', 'location', '{LOC}/{FY}/{SEQ:5}', true, true, null, 'grand_total', false, null, 'GST invoice. Module invoices (RMC, bitumen, bricks, bunk credit) are created here by their billing runs.', null, '{"voucher":"sales","party":"party_id","lines":[{"side":"Dr","ledger":"@party","amount":"grand_total"},{"side":"Cr","ledger":"SALES","amount":"taxable_value"},{"side":"Cr","ledger":"GST_OUTPUT","amount":"gst_amount"},{"side":"Cr","ledger":"TCS_PAYABLE","amount":"tcs_amount"},{"side":"Cr","ledger":"ROUND_OFF","amount":"round_off"}]}'::jsonb, 3);
+('finance.sales_invoice', 'finance', 'finance.sales_invoice', 'finance_sales_invoice', 'Sales invoice', 'Sales invoices', 'transaction', 'location', '{LOC}/{FY}/{SEQ:5}', true, true, null, 'grand_total', false, null, 'GST invoice. Module invoices (RMC, bitumen, bricks, bunk credit) are created here by their billing runs.', null, '{"voucher":"sales","party":"party_id","lines":[{"side":"Dr","ledger":"@party","amount":"grand_total"},{"side":"Cr","ledger":"SALES","amount":"taxable_value"},{"side":"Cr","ledger":"GST_OUTPUT","amount":"gst_amount"},{"side":"Cr","ledger":"TCS_PAYABLE","amount":"tcs_amount"},{"side":"Cr","ledger":"ROUND_OFF","amount":"round_off"}]}'::jsonb, 4);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('finance.sales_invoice.lines', 'finance', 'finance.sales_invoice', 'finance_sales_invoice_lines', 'finance.sales_invoice', 'lines', 'Items', 'Items', 'child', 'location', 4);
+('finance.sales_invoice.lines', 'finance', 'finance.sales_invoice', 'finance_sales_invoice_lines', 'finance.sales_invoice', 'lines', 'Items', 'Items', 'child', 'location', 5);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -353,10 +406,10 @@ create trigger erp_rollup before insert or update on public.finance_purchase_inv
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.purchase_invoice', 'finance', 'finance.purchase_invoice', 'finance_purchase_invoice', 'Purchase invoice', 'Purchase invoices', 'transaction', 'location', 'PI/{FY}/{SEQ:5}', true, true, null, 'grand_total', false, null, 'Vendor bill, matched against PO and GRN (3-way match) before approval.', null, '{"voucher":"purchase","party":"party_id","lines":[{"side":"Dr","ledger":"PURCHASES","amount":"taxable_value"},{"side":"Dr","ledger":"GST_INPUT","amount":"gst_amount"},{"side":"Dr","ledger":"ROUND_OFF","amount":"round_off"},{"side":"Cr","ledger":"@party","amount":"grand_total"},{"side":"Dr","ledger":"@party","amount":"tds_amount"},{"side":"Cr","ledger":"TDS_PAYABLE","amount":"tds_amount"}]}'::jsonb, 5);
+('finance.purchase_invoice', 'finance', 'finance.purchase_invoice', 'finance_purchase_invoice', 'Purchase invoice', 'Purchase invoices', 'transaction', 'location', 'PI/{FY}/{SEQ:5}', true, true, null, 'grand_total', false, null, 'Vendor bill, matched against PO and GRN (3-way match) before approval.', null, '{"voucher":"purchase","party":"party_id","lines":[{"side":"Dr","ledger":"PURCHASES","amount":"taxable_value"},{"side":"Dr","ledger":"GST_INPUT","amount":"gst_amount"},{"side":"Dr","ledger":"ROUND_OFF","amount":"round_off"},{"side":"Cr","ledger":"@party","amount":"grand_total"},{"side":"Dr","ledger":"@party","amount":"tds_amount"},{"side":"Cr","ledger":"TDS_PAYABLE","amount":"tds_amount"}]}'::jsonb, 6);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('finance.purchase_invoice.lines', 'finance', 'finance.purchase_invoice', 'finance_purchase_invoice_lines', 'finance.purchase_invoice', 'lines', 'Items', 'Items', 'child', 'location', 6);
+('finance.purchase_invoice.lines', 'finance', 'finance.purchase_invoice', 'finance_purchase_invoice_lines', 'finance.purchase_invoice', 'lines', 'Items', 'Items', 'child', 'location', 7);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -426,7 +479,7 @@ select audit.track('public.finance_receipt');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.receipt', 'finance', 'finance.receipts_payments', 'finance_receipt', 'Receipt', 'Receipts', 'transaction', 'location', 'RC/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'receipt', 'Money received from a customer: cash, UPI, cheque or bank transfer.', null, '{"voucher":"receipt","party":"party_id","lines":[{"side":"Dr","ledger":"$bank_ledger_id|CASH","amount":"amount"},{"side":"Cr","ledger":"@party","amount":"amount"}]}'::jsonb, 7);
+('finance.receipt', 'finance', 'finance.receipts_payments', 'finance_receipt', 'Receipt', 'Receipts', 'transaction', 'location', 'RC/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'receipt', 'Money received from a customer: cash, UPI, cheque or bank transfer.', null, '{"voucher":"receipt","party":"party_id","lines":[{"side":"Dr","ledger":"$bank_ledger_id|CASH","amount":"amount"},{"side":"Cr","ledger":"@party","amount":"amount"}]}'::jsonb, 8);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -479,7 +532,7 @@ select audit.track('public.finance_payment');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.payment', 'finance', 'finance.receipts_payments', 'finance_payment', 'Payment', 'Payments', 'transaction', 'location', 'PY/{LOC}/{FY}/{SEQ:5}', true, true, null, 'amount', false, null, 'Money paid to a vendor, sub-contractor or employee. Approval rules decide who signs off.', null, '{"voucher":"payment","party":"party_id","lines":[{"side":"Dr","ledger":"@party","amount":"amount"},{"side":"Cr","ledger":"$bank_ledger_id|CASH","amount":"amount"}]}'::jsonb, 8);
+('finance.payment', 'finance', 'finance.receipts_payments', 'finance_payment', 'Payment', 'Payments', 'transaction', 'location', 'PY/{LOC}/{FY}/{SEQ:5}', true, true, null, 'amount', false, null, 'Money paid to a vendor, sub-contractor or employee. Approval rules decide who signs off.', null, '{"voucher":"payment","party":"party_id","lines":[{"side":"Dr","ledger":"@party","amount":"amount"},{"side":"Cr","ledger":"$bank_ledger_id|CASH","amount":"amount"}]}'::jsonb, 9);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -529,7 +582,7 @@ select audit.track('public.finance_expense');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.expense', 'finance', 'finance.receipts_payments', 'finance_expense', 'Expense', 'Expenses', 'transaction', 'location', 'EX/{LOC}/{FY}/{SEQ:5}', true, true, null, 'amount', true, 'wallet', 'Site / plant petty expense with a bill photo. Approved expenses post to the ledger.', null, '{"voucher":"payment","lines":[{"side":"Dr","ledger":"EXPENSES","amount":"amount"},{"side":"Cr","ledger":"PETTY_CASH","amount":"amount"}]}'::jsonb, 9);
+('finance.expense', 'finance', 'finance.receipts_payments', 'finance_expense', 'Expense', 'Expenses', 'transaction', 'location', 'EX/{LOC}/{FY}/{SEQ:5}', true, true, null, 'amount', true, 'wallet', 'Site / plant petty expense with a bill photo. Approved expenses post to the ledger.', null, '{"voucher":"payment","lines":[{"side":"Dr","ledger":"EXPENSES","amount":"amount"},{"side":"Cr","ledger":"PETTY_CASH","amount":"amount"}]}'::jsonb, 10);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -574,7 +627,7 @@ select audit.track('public.finance_bank_txn');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.bank_txn', 'finance', 'finance.bank_reconciliation', 'finance_bank_txn', 'Bank statement line', 'Bank statement lines', 'log', 'company', null, false, true, 'narration', null, false, null, 'Imported bank statement lines, matched to receipts and payments.', null, null, 10);
+('finance.bank_txn', 'finance', 'finance.bank_reconciliation', 'finance_bank_txn', 'Bank statement line', 'Bank statement lines', 'log', 'company', null, false, true, 'narration', null, false, null, 'Imported bank statement lines, matched to receipts and payments.', null, null, 11);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -620,7 +673,7 @@ select audit.track('public.finance_cheque');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('finance.cheque', 'finance', 'finance.cheque_register', 'finance_cheque', 'Cheque / PDC', 'Cheque / PDCs', 'transaction', 'company', null, false, true, 'cheque_no', 'amount', false, null, null, null, null, 11);
+('finance.cheque', 'finance', 'finance.cheque_register', 'finance_cheque', 'Cheque / PDC', 'Cheque / PDCs', 'transaction', 'company', null, false, true, 'cheque_no', 'amount', false, null, null, null, null, 12);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -678,7 +731,7 @@ select audit.track('public.crm_lead');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('crm.lead', 'crm', 'crm.lead_capture', 'crm_lead', 'Lead', 'Leads', 'transaction', 'location', 'LD/{FY}/{SEQ:5}', false, true, 'contact_name', 'expected_value', true, 'target', 'Every enquiry, from any source, in one list. Assigned by area and business line.', null, null, 12);
+('crm.lead', 'crm', 'crm.lead_capture', 'crm_lead', 'Lead', 'Leads', 'transaction', 'location', 'LD/{FY}/{SEQ:5}', false, true, 'contact_name', 'expected_value', true, 'target', 'Every enquiry, from any source, in one list. Assigned by area and business line.', null, null, 13);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -730,7 +783,7 @@ select audit.track('public.crm_follow_up');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('crm.follow_up', 'crm', 'crm.pipelines', 'crm_follow_up', 'Follow-up', 'Follow-ups', 'log', 'location', null, false, true, 'outcome', null, true, 'phone', null, null, null, 13);
+('crm.follow_up', 'crm', 'crm.pipelines', 'crm_follow_up', 'Follow-up', 'Follow-ups', 'log', 'location', null, false, true, 'outcome', null, true, 'phone', null, null, null, 14);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -817,10 +870,10 @@ create trigger erp_rollup before insert or update on public.crm_quotation for ea
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('crm.quotation', 'crm', 'crm.quotation', 'crm_quotation', 'Quotation', 'Quotations', 'transaction', 'location', 'QT/{LOC}/{FY}/{SEQ:4}', true, true, null, 'grand_total', false, null, 'Rates from the price list; discounts beyond the limit go for approval.', null, null, 14);
+('crm.quotation', 'crm', 'crm.quotation', 'crm_quotation', 'Quotation', 'Quotations', 'transaction', 'location', 'QT/{LOC}/{FY}/{SEQ:4}', true, true, null, 'grand_total', false, null, 'Rates from the price list; discounts beyond the limit go for approval.', null, null, 15);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('crm.quotation.lines', 'crm', 'crm.quotation', 'crm_quotation_lines', 'crm.quotation', 'lines', 'Items', 'Items', 'child', 'location', 15);
+('crm.quotation.lines', 'crm', 'crm.quotation', 'crm_quotation_lines', 'crm.quotation', 'lines', 'Items', 'Items', 'child', 'location', 16);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -891,7 +944,7 @@ select audit.track('public.crm_tender');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('crm.tender', 'crm', 'crm.tenders', 'crm_tender', 'Tender', 'Tenders', 'transaction', 'company', 'TN/{FY}/{SEQ:4}', false, true, 'work_name', 'estimated_value', false, null, null, null, null, 16);
+('crm.tender', 'crm', 'crm.tenders', 'crm_tender', 'Tender', 'Tenders', 'transaction', 'company', 'TN/{FY}/{SEQ:4}', false, true, 'work_name', 'estimated_value', false, null, null, null, null, 17);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -945,7 +998,7 @@ select audit.track('public.crm_site_pin');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('crm.site_pin', 'crm', 'crm.site_hunting_map', 'crm_site_pin', 'Construction site spotted', 'Construction site spotteds', 'log', 'location', null, false, true, 'site_name', null, true, 'map-pin', 'Salespeople pin construction sites they pass; repeat visits are tracked and nearby sites suggested.', null, null, 17);
+('crm.site_pin', 'crm', 'crm.site_hunting_map', 'crm_site_pin', 'Construction site spotted', 'Construction site spotteds', 'log', 'location', null, false, true, 'site_name', null, true, 'map-pin', 'Salespeople pin construction sites they pass; repeat visits are tracked and nearby sites suggested.', null, null, 18);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1013,10 +1066,10 @@ select audit.track('public.rmc_mix_design_materials');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('rmc.mix_design', 'rmc', 'rmc.mix_design', 'rmc_mix_design', 'Mix design', 'Mix designs', 'master', 'location', null, true, false, 'grade', null, false, null, 'Approved quantities per m³. Material cost per m³ is worked out from the latest purchase rates.', null, null, 18);
+('rmc.mix_design', 'rmc', 'rmc.mix_design', 'rmc_mix_design', 'Mix design', 'Mix designs', 'master', 'location', null, true, false, 'grade', null, false, null, 'Approved quantities per m³. Material cost per m³ is worked out from the latest purchase rates.', null, null, 19);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('rmc.mix_design.materials', 'rmc', 'rmc.mix_design', 'rmc_mix_design_materials', 'rmc.mix_design', 'materials', 'Materials per m³', 'Materials per m³', 'child', 'location', 19);
+('rmc.mix_design.materials', 'rmc', 'rmc.mix_design', 'rmc_mix_design_materials', 'rmc.mix_design', 'materials', 'Materials per m³', 'Materials per m³', 'child', 'location', 20);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1090,7 +1143,7 @@ select audit.track('public.rmc_order');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('rmc.order', 'rmc', 'rmc.orders', 'rmc_order', 'RMC order', 'RMC orders', 'transaction', 'location', 'SO/{LOC}/{FY}/{SEQ:5}', true, true, 'grade', 'order_value', true, 'calendar', 'Customer order with pour slot. Credit limit is checked before confirming.', null, null, 20);
+('rmc.order', 'rmc', 'rmc.orders', 'rmc_order', 'RMC order', 'RMC orders', 'transaction', 'location', 'SO/{LOC}/{FY}/{SEQ:5}', true, true, 'grade', 'order_value', true, 'calendar', 'Customer order with pour slot. Credit limit is checked before confirming.', null, null, 21);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1178,10 +1231,10 @@ create trigger erp_rollup before insert or update on public.rmc_batch for each r
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('rmc.batch', 'rmc', 'rmc.batch_entry', 'rmc_batch', 'Batch', 'Batches', 'transaction', 'location', 'BT/{LOC}/{FY}/{SEQ:6}', false, true, 'doc_no', null, true, 'factory', 'One load. Actual weights are compared with the mix design; material is taken out of stock.', '[{"child":"materials","item":"item_id","qty":"actual_qty","dir":"out"}]'::jsonb, null, 21);
+('rmc.batch', 'rmc', 'rmc.batch_entry', 'rmc_batch', 'Batch', 'Batches', 'transaction', 'location', 'BT/{LOC}/{FY}/{SEQ:6}', false, true, 'doc_no', null, true, 'factory', 'One load. Actual weights are compared with the mix design; material is taken out of stock.', '[{"child":"materials","item":"item_id","qty":"actual_qty","dir":"out"}]'::jsonb, null, 22);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('rmc.batch.materials', 'rmc', 'rmc.batch_entry', 'rmc_batch_materials', 'rmc.batch', 'materials', 'Actual weights', 'Actual weights', 'child', 'location', 22);
+('rmc.batch.materials', 'rmc', 'rmc.batch_entry', 'rmc_batch_materials', 'rmc.batch', 'materials', 'Actual weights', 'Actual weights', 'child', 'location', 23);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1248,7 +1301,7 @@ select audit.track('public.rmc_challan');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('rmc.challan', 'rmc', 'rmc.delivery_challan', 'rmc_challan', 'Delivery challan', 'Delivery challans', 'transaction', 'location', 'DC/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', 'qty_m3', true, 'file-check', 'Printed on Bluetooth printer even offline (number from the phone''s reserved block). Signed on the phone at site.', null, null, 23);
+('rmc.challan', 'rmc', 'rmc.delivery_challan', 'rmc_challan', 'Delivery challan', 'Delivery challans', 'transaction', 'location', 'DC/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', 'qty_m3', true, 'file-check', 'Printed on Bluetooth printer even offline (number from the phone''s reserved block). Signed on the phone at site.', null, null, 24);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1327,10 +1380,10 @@ select audit.track('public.rmc_cube_test_results');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('rmc.cube_test', 'rmc', 'rmc.cube_test', 'rmc_cube_test', 'Cube test', 'Cube tests', 'transaction', 'location', 'CT/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', null, false, null, 'Samples cast per pour; results at 7 and 28 days (configurable). Failures alert the plant head.', null, null, 24);
+('rmc.cube_test', 'rmc', 'rmc.cube_test', 'rmc_cube_test', 'Cube test', 'Cube tests', 'transaction', 'location', 'CT/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', null, false, null, 'Samples cast per pour; results at 7 and 28 days (configurable). Failures alert the plant head.', null, null, 25);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('rmc.cube_test.results', 'rmc', 'rmc.cube_test', 'rmc_cube_test_results', 'rmc.cube_test', 'results', 'Results', 'Results', 'child', 'location', 25);
+('rmc.cube_test.results', 'rmc', 'rmc.cube_test', 'rmc_cube_test_results', 'rmc.cube_test', 'results', 'Results', 'Results', 'child', 'location', 26);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1401,10 +1454,10 @@ select audit.track('public.bitumen_jmf_bins');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bitumen.jmf', 'bitumen', 'bitumen.jmf', 'bitumen_jmf', 'Job mix formula', 'Job mix formulas', 'master', 'location', null, true, false, 'mix_type', null, false, null, null, null, null, 26);
+('bitumen.jmf', 'bitumen', 'bitumen.jmf', 'bitumen_jmf', 'Job mix formula', 'Job mix formulas', 'master', 'location', null, true, false, 'mix_type', null, false, null, null, null, null, 27);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('bitumen.jmf.bins', 'bitumen', 'bitumen.jmf', 'bitumen_jmf_bins', 'bitumen.jmf', 'bins', 'Aggregate proportions', 'Aggregate proportions', 'child', 'location', 27);
+('bitumen.jmf.bins', 'bitumen', 'bitumen.jmf', 'bitumen_jmf_bins', 'bitumen.jmf', 'bins', 'Aggregate proportions', 'Aggregate proportions', 'child', 'location', 28);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1471,10 +1524,10 @@ select audit.track('public.bitumen_batch_materials');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bitumen.batch', 'bitumen', 'bitumen.production_batch', 'bitumen_batch', 'Production batch', 'Production batches', 'transaction', 'location', 'HM/{LOC}/{FY}/{SEQ:6}', false, true, 'doc_no', null, true, 'flame', 'Each batch with temperature. Materials used come off stock; temperature outside the JMF band is flagged.', '[{"child":"materials","item":"item_id","qty":"qty_kg","dir":"out"}]'::jsonb, null, 28);
+('bitumen.batch', 'bitumen', 'bitumen.production_batch', 'bitumen_batch', 'Production batch', 'Production batches', 'transaction', 'location', 'HM/{LOC}/{FY}/{SEQ:6}', false, true, 'doc_no', null, true, 'flame', 'Each batch with temperature. Materials used come off stock; temperature outside the JMF band is flagged.', '[{"child":"materials","item":"item_id","qty":"qty_kg","dir":"out"}]'::jsonb, null, 29);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('bitumen.batch.materials', 'bitumen', 'bitumen.production_batch', 'bitumen_batch_materials', 'bitumen.batch', 'materials', 'Materials', 'Materials', 'child', 'location', 29);
+('bitumen.batch.materials', 'bitumen', 'bitumen.production_batch', 'bitumen_batch_materials', 'bitumen.batch', 'materials', 'Materials', 'Materials', 'child', 'location', 30);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1531,7 +1584,7 @@ select audit.track('public.bitumen_dispatch');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bitumen.dispatch', 'bitumen', 'bitumen.dispatch', 'bitumen_dispatch', 'Hot-mix dispatch', 'Hot-mix dispatches', 'transaction', 'location', 'HD/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'truck', null, null, null, 30);
+('bitumen.dispatch', 'bitumen', 'bitumen.dispatch', 'bitumen_dispatch', 'Hot-mix dispatch', 'Hot-mix dispatches', 'transaction', 'location', 'HD/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'truck', null, null, null, 31);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1585,7 +1638,7 @@ select audit.track('public.bitumen_quality_test');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bitumen.quality_test', 'bitumen', 'bitumen.quality_lab', 'bitumen_quality_test', 'Quality test', 'Quality tests', 'log', 'location', null, false, true, 'mix_type', null, false, null, null, null, null, 31);
+('bitumen.quality_test', 'bitumen', 'bitumen.quality_lab', 'bitumen_quality_test', 'Quality test', 'Quality tests', 'log', 'location', null, false, true, 'mix_type', null, false, null, null, null, null, 32);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1658,7 +1711,7 @@ select audit.track('public.weighbridge_ticket');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('weighbridge.ticket', 'weighbridge', 'weighbridge.tickets', 'weighbridge_ticket', 'Weighment ticket', 'Weighment tickets', 'transaction', 'location', 'WB/{LOC}/{FY}/{SEQ:6}', false, true, 'vehicle_no', 'net_kg', true, 'scale', 'First and second weight from the scale with camera snapshots. Net goes to the GRN or dispatch automatically.', null, null, 32);
+('weighbridge.ticket', 'weighbridge', 'weighbridge.tickets', 'weighbridge_ticket', 'Weighment ticket', 'Weighment tickets', 'transaction', 'location', 'WB/{LOC}/{FY}/{SEQ:6}', false, true, 'vehicle_no', 'net_kg', true, 'scale', 'First and second weight from the scale with camera snapshots. Net goes to the GRN or dispatch automatically.', null, null, 33);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1737,10 +1790,10 @@ select audit.track('public.bricks_recipe_materials');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bricks.recipe', 'bricks', 'bricks.recipe', 'bricks_recipe', 'Recipe', 'Recipes', 'master', 'location', null, false, false, 'product_id', null, false, null, null, null, null, 33);
+('bricks.recipe', 'bricks', 'bricks.recipe', 'bricks_recipe', 'Recipe', 'Recipes', 'master', 'location', null, false, false, 'product_id', null, false, null, null, null, null, 34);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('bricks.recipe.materials', 'bricks', 'bricks.recipe', 'bricks_recipe_materials', 'bricks.recipe', 'materials', 'Materials', 'Materials', 'child', 'location', 34);
+('bricks.recipe.materials', 'bricks', 'bricks.recipe', 'bricks_recipe_materials', 'bricks.recipe', 'materials', 'Materials', 'Materials', 'child', 'location', 35);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1803,10 +1856,10 @@ select audit.track('public.bricks_production_materials');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bricks.production', 'bricks', 'bricks.daily_production', 'bricks_production', 'Daily production', 'Daily production', 'transaction', 'location', 'BP/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', null, true, 'blocks', 'One screen for the supervisor. Materials are taken from the recipe; good units go to the curing yard.', '[{"child":"materials","item":"item_id","qty":"qty","dir":"out"}]'::jsonb, null, 35);
+('bricks.production', 'bricks', 'bricks.daily_production', 'bricks_production', 'Daily production', 'Daily production', 'transaction', 'location', 'BP/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', null, true, 'blocks', 'One screen for the supervisor. Materials are taken from the recipe; good units go to the curing yard.', '[{"child":"materials","item":"item_id","qty":"qty","dir":"out"}]'::jsonb, null, 36);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('bricks.production.materials', 'bricks', 'bricks.daily_production', 'bricks_production_materials', 'bricks.production', 'materials', 'Materials used', 'Materials used', 'child', 'location', 36);
+('bricks.production.materials', 'bricks', 'bricks.daily_production', 'bricks_production_materials', 'bricks.production', 'materials', 'Materials used', 'Materials used', 'child', 'location', 37);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1858,7 +1911,7 @@ select audit.track('public.bricks_curing_lot');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bricks.curing_lot', 'bricks', 'bricks.curing', 'bricks_curing_lot', 'Curing lot', 'Curing lots', 'transaction', 'location', 'LOT/{LOC}/{SEQ:5}', false, true, 'doc_no', null, true, 'droplets', null, null, null, 37);
+('bricks.curing_lot', 'bricks', 'bricks.curing', 'bricks_curing_lot', 'Curing lot', 'Curing lots', 'transaction', 'location', 'LOT/{LOC}/{SEQ:5}', false, true, 'doc_no', null, true, 'droplets', null, null, null, 38);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1902,7 +1955,7 @@ select audit.track('public.bricks_breakage');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bricks.breakage', 'bricks', 'bricks.breakage', 'bricks_breakage', 'Breakage', 'Breakages', 'log', 'location', null, false, true, 'stage', null, true, 'trash', null, null, null, 38);
+('bricks.breakage', 'bricks', 'bricks.breakage', 'bricks_breakage', 'Breakage', 'Breakages', 'log', 'location', null, false, true, 'stage', null, true, 'trash', null, null, null, 39);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -1948,7 +2001,7 @@ select audit.track('public.bricks_dispatch');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bricks.dispatch', 'bricks', 'bricks.dispatch', 'bricks_dispatch', 'Bricks dispatch', 'Bricks dispatches', 'transaction', 'location', 'BD/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'truck', null, null, null, 39);
+('bricks.dispatch', 'bricks', 'bricks.dispatch', 'bricks_dispatch', 'Bricks dispatch', 'Bricks dispatches', 'transaction', 'location', 'BD/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'truck', null, null, null, 40);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2005,7 +2058,7 @@ select audit.track('public.infra_project');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.project', 'infra', 'infra.projects', 'infra_project', 'Project', 'Projects', 'master', 'location', null, false, false, 'name', 'contract_value', false, null, 'One project per site location. Contract terms drive RA bill deductions.', null, null, 40);
+('infra.project', 'infra', 'infra.projects', 'infra_project', 'Project', 'Projects', 'master', 'location', null, false, false, 'name', 'contract_value', false, null, 'One project per site location. Contract terms drive RA bill deductions.', null, null, 41);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2064,7 +2117,7 @@ select audit.track('public.infra_boq_item');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.boq_item', 'infra', 'infra.boq', 'infra_boq_item', 'BOQ item', 'BOQ items', 'master', 'location', null, false, false, 'description', null, false, null, 'Bill of quantities. Material norms link to RMC, bricks and bitumen orders.', null, null, 41);
+('infra.boq_item', 'infra', 'infra.boq', 'infra_boq_item', 'BOQ item', 'BOQ items', 'master', 'location', null, false, false, 'description', null, false, null, 'Bill of quantities. Material norms link to RMC, bricks and bitumen orders.', null, null, 42);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2171,16 +2224,16 @@ create trigger erp_rollup before insert or update on public.infra_dpr for each r
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.dpr', 'infra', 'infra.dpr', 'infra_dpr', 'Daily progress report', 'Daily progress reports', 'transaction', 'location', 'DPR/{LOC}/{SEQ:5}', true, true, 'doc_no', null, true, 'hard-hat', 'Site engineer''s day: work done with photos, manpower, machines, materials, hindrances.', null, null, 42);
+('infra.dpr', 'infra', 'infra.dpr', 'infra_dpr', 'Daily progress report', 'Daily progress reports', 'transaction', 'location', 'DPR/{LOC}/{SEQ:5}', true, true, 'doc_no', null, true, 'hard-hat', 'Site engineer''s day: work done with photos, manpower, machines, materials, hindrances.', null, null, 43);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('infra.dpr.work', 'infra', 'infra.dpr', 'infra_dpr_work', 'infra.dpr', 'work', 'Work done', 'Work done', 'child', 'location', 43);
+('infra.dpr.work', 'infra', 'infra.dpr', 'infra_dpr_work', 'infra.dpr', 'work', 'Work done', 'Work done', 'child', 'location', 44);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('infra.dpr.labour', 'infra', 'infra.dpr', 'infra_dpr_labour', 'infra.dpr', 'labour', 'Manpower', 'Manpower', 'child', 'location', 44);
+('infra.dpr.labour', 'infra', 'infra.dpr', 'infra_dpr_labour', 'infra.dpr', 'labour', 'Manpower', 'Manpower', 'child', 'location', 45);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('infra.dpr.machines', 'infra', 'infra.dpr', 'infra_dpr_machines', 'infra.dpr', 'machines', 'Machines', 'Machines', 'child', 'location', 45);
+('infra.dpr.machines', 'infra', 'infra.dpr', 'infra_dpr_machines', 'infra.dpr', 'machines', 'Machines', 'Machines', 'child', 'location', 46);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2235,7 +2288,7 @@ select audit.track('public.infra_measurement');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.measurement', 'infra', 'infra.measurement_book', 'infra_measurement', 'Measurement', 'Measurements', 'log', 'location', null, false, true, 'boq_item_id', null, false, null, null, null, null, 46);
+('infra.measurement', 'infra', 'infra.measurement_book', 'infra_measurement', 'Measurement', 'Measurements', 'log', 'location', null, false, true, 'boq_item_id', null, false, null, null, null, null, 47);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2321,10 +2374,10 @@ create trigger erp_rollup before insert or update on public.infra_ra_bill for ea
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.ra_bill', 'infra', 'infra.ra_bills', 'infra_ra_bill', 'RA bill', 'RA bills', 'transaction', 'location', 'RA/{LOC}/{SEQ:3}', true, true, 'doc_no', 'net_payable', false, null, 'Running account bill: cumulative quantities, deductions as per contract, certified amount tracking.', null, '{"voucher":"sales","party":"$client","lines":[{"side":"Dr","ledger":"@party","amount":"net_payable"},{"side":"Dr","ledger":"RETENTION_RECEIVABLE","amount":"retention"},{"side":"Dr","ledger":"SECURITY_DEPOSIT_RECEIVABLE","amount":"security_deposit"},{"side":"Dr","ledger":"TDS_RECEIVABLE","amount":"income_tax_tds"},{"side":"Dr","ledger":"GST_TDS_RECEIVABLE","amount":"gst_tds"},{"side":"Dr","ledger":"LABOUR_CESS","amount":"labour_cess"},{"side":"Dr","ledger":"MOBILISATION_ADVANCE","amount":"mobilisation_recovery"},{"side":"Dr","ledger":"MATERIAL_RECOVERY","amount":"material_recovery"},{"side":"Dr","ledger":"OTHER_DEDUCTIONS","amount":"other_deductions"},{"side":"Cr","ledger":"CONTRACT_REVENUE","amount":"this_bill_value"},{"side":"Cr","ledger":"GST_OUTPUT","amount":"gst_amount"}]}'::jsonb, 47);
+('infra.ra_bill', 'infra', 'infra.ra_bills', 'infra_ra_bill', 'RA bill', 'RA bills', 'transaction', 'location', 'RA/{LOC}/{SEQ:3}', true, true, 'doc_no', 'net_payable', false, null, 'Running account bill: cumulative quantities, deductions as per contract, certified amount tracking.', null, '{"voucher":"sales","party":"$client","lines":[{"side":"Dr","ledger":"@party","amount":"net_payable"},{"side":"Dr","ledger":"RETENTION_RECEIVABLE","amount":"retention"},{"side":"Dr","ledger":"SECURITY_DEPOSIT_RECEIVABLE","amount":"security_deposit"},{"side":"Dr","ledger":"TDS_RECEIVABLE","amount":"income_tax_tds"},{"side":"Dr","ledger":"GST_TDS_RECEIVABLE","amount":"gst_tds"},{"side":"Dr","ledger":"LABOUR_CESS","amount":"labour_cess"},{"side":"Dr","ledger":"MOBILISATION_ADVANCE","amount":"mobilisation_recovery"},{"side":"Dr","ledger":"MATERIAL_RECOVERY","amount":"material_recovery"},{"side":"Dr","ledger":"OTHER_DEDUCTIONS","amount":"other_deductions"},{"side":"Cr","ledger":"CONTRACT_REVENUE","amount":"this_bill_value"},{"side":"Cr","ledger":"GST_OUTPUT","amount":"gst_amount"}]}'::jsonb, 48);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('infra.ra_bill.lines', 'infra', 'infra.ra_bills', 'infra_ra_bill_lines', 'infra.ra_bill', 'lines', 'BOQ items', 'BOQ items', 'child', 'location', 48);
+('infra.ra_bill.lines', 'infra', 'infra.ra_bills', 'infra_ra_bill_lines', 'infra.ra_bill', 'lines', 'BOQ items', 'BOQ items', 'child', 'location', 49);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2387,7 +2440,7 @@ select audit.track('public.infra_attendance');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.attendance', 'infra', 'infra.labour_attendance', 'infra_attendance', 'Labour attendance', 'Labour attendances', 'log', 'location', null, false, true, 'worker_name', null, true, 'users', 'Supervisor marks workers with a face photo inside the site geofence (works offline).', null, null, 49);
+('infra.attendance', 'infra', 'infra.labour_attendance', 'infra_attendance', 'Labour attendance', 'Labour attendances', 'log', 'location', null, false, true, 'worker_name', null, true, 'users', 'Supervisor marks workers with a face photo inside the site geofence (works offline).', null, null, 50);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2451,10 +2504,10 @@ select audit.track('public.infra_material_request_lines');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.material_request', 'infra', 'infra.material_request', 'infra_material_request', 'Site material request', 'Site material requests', 'transaction', 'location', 'MR/{LOC}/{SEQ:5}', true, true, null, null, true, 'package-plus', null, null, null, 50);
+('infra.material_request', 'infra', 'infra.material_request', 'infra_material_request', 'Site material request', 'Site material requests', 'transaction', 'location', 'MR/{LOC}/{SEQ:5}', true, true, null, null, true, 'package-plus', null, null, null, 51);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('infra.material_request.lines', 'infra', 'infra.material_request', 'infra_material_request_lines', 'infra.material_request', 'lines', 'Items', 'Items', 'child', 'location', 51);
+('infra.material_request.lines', 'infra', 'infra.material_request', 'infra_material_request_lines', 'infra.material_request', 'lines', 'Items', 'Items', 'child', 'location', 52);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2526,10 +2579,10 @@ create trigger erp_rollup before insert or update on public.infra_subcon_bill fo
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('infra.subcon_bill', 'infra', 'infra.subcontractor', 'infra_subcon_bill', 'Sub-contractor bill', 'Sub-contractor bills', 'transaction', 'location', 'SB/{LOC}/{SEQ:4}', true, true, null, 'net_payable', false, null, null, null, '{"voucher":"purchase","party":"party_id","lines":[{"side":"Dr","ledger":"SUBCONTRACT_EXPENSE","amount":"gross"},{"side":"Cr","ledger":"MATERIAL_RECOVERY","amount":"material_supplied"},{"side":"Cr","ledger":"RETENTION_PAYABLE","amount":"retention"},{"side":"Cr","ledger":"TDS_PAYABLE","amount":"tds"},{"side":"Cr","ledger":"@party","amount":"net_payable"},{"side":"Cr","ledger":"ADVANCE_TO_SUPPLIERS","amount":"advance_recovery"}]}'::jsonb, 52);
+('infra.subcon_bill', 'infra', 'infra.subcontractor', 'infra_subcon_bill', 'Sub-contractor bill', 'Sub-contractor bills', 'transaction', 'location', 'SB/{LOC}/{SEQ:4}', true, true, null, 'net_payable', false, null, null, null, '{"voucher":"purchase","party":"party_id","lines":[{"side":"Dr","ledger":"SUBCONTRACT_EXPENSE","amount":"gross"},{"side":"Cr","ledger":"MATERIAL_RECOVERY","amount":"material_supplied"},{"side":"Cr","ledger":"RETENTION_PAYABLE","amount":"retention"},{"side":"Cr","ledger":"TDS_PAYABLE","amount":"tds"},{"side":"Cr","ledger":"@party","amount":"net_payable"},{"side":"Cr","ledger":"ADVANCE_TO_SUPPLIERS","amount":"advance_recovery"}]}'::jsonb, 53);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('infra.subcon_bill.lines', 'infra', 'infra.subcontractor', 'infra_subcon_bill_lines', 'infra.subcon_bill', 'lines', 'Work', 'Work', 'child', 'location', 53);
+('infra.subcon_bill.lines', 'infra', 'infra.subcontractor', 'infra_subcon_bill_lines', 'infra.subcon_bill', 'lines', 'Work', 'Work', 'child', 'location', 54);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2576,7 +2629,7 @@ select audit.track('public.bunk_tank');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.tank', 'bunk', 'bunk.tanks', 'bunk_tank', 'Tank', 'Tanks', 'master', 'location', null, false, false, 'name', null, false, null, null, null, null, 54);
+('bunk.tank', 'bunk', 'bunk.tanks', 'bunk_tank', 'Tank', 'Tanks', 'master', 'location', null, false, false, 'name', null, false, null, null, null, null, 55);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2617,7 +2670,7 @@ select audit.track('public.bunk_nozzle');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.nozzle', 'bunk', 'bunk.tanks.nozzles', 'bunk_nozzle', 'Nozzle', 'Nozzles', 'master', 'location', null, false, false, 'name', null, false, null, null, null, null, 55);
+('bunk.nozzle', 'bunk', 'bunk.tanks.nozzles', 'bunk_nozzle', 'Nozzle', 'Nozzles', 'master', 'location', null, false, false, 'name', null, false, null, null, null, null, 56);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2655,7 +2708,7 @@ select audit.track('public.bunk_price');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.price', 'bunk', 'bunk.prices', 'bunk_price', 'Selling price', 'Selling prices', 'log', 'location', null, false, true, 'product', null, false, null, 'Daily retail selling price per product; changes take effect at the given time.', null, null, 56);
+('bunk.price', 'bunk', 'bunk.prices', 'bunk_price', 'Selling price', 'Selling prices', 'log', 'location', null, false, true, 'product', null, false, null, 'Daily retail selling price per product; changes take effect at the given time.', null, null, 57);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2759,13 +2812,13 @@ create trigger erp_rollup before insert or update on public.bunk_shift for each 
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.shift', 'bunk', 'bunk.shift', 'bunk_shift', 'Shift', 'Shifts', 'transaction', 'location', 'SH/{LOC}/{FY}/{SEQ:5}', true, true, null, 'expected_collection', true, 'fuel', 'Open with opening readings, close with closing readings and cash. Sale = closing − opening − testing.', null, null, 57);
+('bunk.shift', 'bunk', 'bunk.shift', 'bunk_shift', 'Shift', 'Shifts', 'transaction', 'location', 'SH/{LOC}/{FY}/{SEQ:5}', true, true, null, 'expected_collection', true, 'fuel', 'Open with opening readings, close with closing readings and cash. Sale = closing − opening − testing.', null, null, 58);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('bunk.shift.readings', 'bunk', 'bunk.shift', 'bunk_shift_readings', 'bunk.shift', 'readings', 'Nozzle readings', 'Nozzle readings', 'child', 'location', 58);
+('bunk.shift.readings', 'bunk', 'bunk.shift', 'bunk_shift_readings', 'bunk.shift', 'readings', 'Nozzle readings', 'Nozzle readings', 'child', 'location', 59);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('bunk.shift.credit', 'bunk', 'bunk.shift', 'bunk_shift_credit', 'bunk.shift', 'credit', 'Credit sales (indent slips)', 'Credit sales (indent slips)', 'child', 'location', 59);
+('bunk.shift.credit', 'bunk', 'bunk.shift', 'bunk_shift_credit', 'bunk.shift', 'credit', 'Credit sales (indent slips)', 'Credit sales (indent slips)', 'child', 'location', 60);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2837,7 +2890,7 @@ select audit.track('public.bunk_dip');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.dip', 'bunk', 'bunk.tanks.daily_dip', 'bunk_dip', 'Tank dip', 'Tank dips', 'log', 'location', null, false, true, 'tank_id', null, true, 'ruler', 'Morning dip. Litres come from the tank''s calibration chart; book vs dip variance is checked.', null, null, 60);
+('bunk.dip', 'bunk', 'bunk.tanks.daily_dip', 'bunk_dip', 'Tank dip', 'Tank dips', 'log', 'location', null, false, true, 'tank_id', null, true, 'ruler', 'Morning dip. Litres come from the tank''s calibration chart; book vs dip variance is checked.', null, null, 61);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2900,7 +2953,7 @@ select audit.track('public.bunk_tanker_receipt');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.tanker_receipt', 'bunk', 'bunk.tanker_receipt', 'bunk_tanker_receipt', 'Tanker receipt', 'Tanker receipts', 'transaction', 'location', 'TR/{LOC}/{FY}/{SEQ:4}', true, true, null, 'invoice_amount', true, 'truck', 'Decantation check: invoice qty and density vs actual dips before and after.', null, null, 61);
+('bunk.tanker_receipt', 'bunk', 'bunk.tanker_receipt', 'bunk_tanker_receipt', 'Tanker receipt', 'Tanker receipts', 'transaction', 'location', 'TR/{LOC}/{FY}/{SEQ:4}', true, true, null, 'invoice_amount', true, 'truck', 'Decantation check: invoice qty and density vs actual dips before and after.', null, null, 62);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -2959,7 +3012,7 @@ select audit.track('public.bunk_internal_issue');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.internal_issue', 'bunk', 'bunk.internal_fuel_issue', 'bunk_internal_issue', 'Fuel to group vehicle', 'Fuel to group vehicles', 'transaction', 'location', 'FI/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'fuel', 'One entry: bunk stock goes down, the vehicle''s fuel log goes up, and an inter-company bill is raised.', null, null, 62);
+('bunk.internal_issue', 'bunk', 'bunk.internal_fuel_issue', 'bunk_internal_issue', 'Fuel to group vehicle', 'Fuel to group vehicles', 'transaction', 'location', 'FI/{LOC}/{FY}/{SEQ:5}', false, true, null, 'amount', true, 'fuel', 'One entry: bunk stock goes down, the vehicle''s fuel log goes up, and an inter-company bill is raised.', null, null, 63);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3025,10 +3078,10 @@ create trigger erp_rollup before insert or update on public.bunk_lube_sale for e
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('bunk.lube_sale', 'bunk', 'bunk.lubes', 'bunk_lube_sale', 'Lube sale', 'Lube sales', 'transaction', 'location', 'LB/{LOC}/{FY}/{SEQ:5}', false, true, null, 'total', true, 'droplet', null, '[{"child":"lines","item":"item_id","qty":"qty","dir":"out","rate":"rate"}]'::jsonb, null, 63);
+('bunk.lube_sale', 'bunk', 'bunk.lubes', 'bunk_lube_sale', 'Lube sale', 'Lube sales', 'transaction', 'location', 'LB/{LOC}/{FY}/{SEQ:5}', false, true, null, 'total', true, 'droplet', null, '[{"child":"lines","item":"item_id","qty":"qty","dir":"out","rate":"rate"}]'::jsonb, null, 64);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('bunk.lube_sale.lines', 'bunk', 'bunk.lubes', 'bunk_lube_sale_lines', 'bunk.lube_sale', 'lines', 'Items', 'Items', 'child', 'location', 64);
+('bunk.lube_sale.lines', 'bunk', 'bunk.lubes', 'bunk_lube_sale_lines', 'bunk.lube_sale', 'lines', 'Items', 'Items', 'child', 'location', 65);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3083,7 +3136,7 @@ select audit.track('public.fleet_trip');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('fleet.trip', 'fleet', 'fleet.trips', 'fleet_trip', 'Trip', 'Trips', 'transaction', 'location', 'TP/{LOC}/{FY}/{SEQ:6}', false, true, 'doc_no', null, true, 'route', null, null, null, 65);
+('fleet.trip', 'fleet', 'fleet.trips', 'fleet_trip', 'Trip', 'Trips', 'transaction', 'location', 'TP/{LOC}/{FY}/{SEQ:6}', false, true, 'doc_no', null, true, 'route', null, null, null, 66);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3147,7 +3200,7 @@ select audit.track('public.fleet_fuel');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('fleet.fuel', 'fleet', 'fleet.fuel_log', 'fleet_fuel', 'Fuel fill', 'Fuel fills', 'log', 'location', null, false, true, 'vehicle_id', null, true, 'fuel', 'Every fill. Mileage vs norm is worked out against the previous fill.', null, null, 66);
+('fleet.fuel', 'fleet', 'fleet.fuel_log', 'fleet_fuel', 'Fuel fill', 'Fuel fills', 'log', 'location', null, false, true, 'vehicle_id', null, true, 'fuel', 'Every fill. Mileage vs norm is worked out against the previous fill.', null, null, 67);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3237,10 +3290,10 @@ create trigger erp_rollup before insert or update on public.fleet_service_job fo
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('fleet.service_job', 'fleet', 'fleet.service', 'fleet_service_job', 'Service job', 'Service jobs', 'transaction', 'location', 'JC/{LOC}/{FY}/{SEQ:5}', true, true, null, 'total_cost', true, 'wrench', null, '[{"child":"parts","item":"item_id","qty":"qty","dir":"out","rate":"rate","when":"approved"}]'::jsonb, null, 67);
+('fleet.service_job', 'fleet', 'fleet.service', 'fleet_service_job', 'Service job', 'Service jobs', 'transaction', 'location', 'JC/{LOC}/{FY}/{SEQ:5}', true, true, null, 'total_cost', true, 'wrench', null, '[{"child":"parts","item":"item_id","qty":"qty","dir":"out","rate":"rate","when":"approved"}]'::jsonb, null, 68);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('fleet.service_job.parts', 'fleet', 'fleet.service', 'fleet_service_job_parts', 'fleet.service_job', 'parts', 'Parts used', 'Parts used', 'child', 'location', 68);
+('fleet.service_job.parts', 'fleet', 'fleet.service', 'fleet_service_job_parts', 'fleet.service_job', 'parts', 'Parts used', 'Parts used', 'child', 'location', 69);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3300,7 +3353,7 @@ select audit.track('public.fleet_tyre');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('fleet.tyre', 'fleet', 'fleet.tyres', 'fleet_tyre', 'Tyre', 'Tyres', 'master', 'company', null, false, false, 'serial_no', null, false, null, null, null, null, 69);
+('fleet.tyre', 'fleet', 'fleet.tyres', 'fleet_tyre', 'Tyre', 'Tyres', 'master', 'company', null, false, false, 'serial_no', null, false, null, null, null, null, 70);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3353,7 +3406,7 @@ select audit.track('public.fleet_machine_log');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('fleet.machine_log', 'fleet', 'fleet.machines_hours', 'fleet_machine_log', 'Machine log', 'Machine logs', 'log', 'location', null, false, true, 'vehicle_id', null, true, 'clock', 'Daily log for JCBs, rollers, pavers: hours worked, idle, fuel, operator.', null, null, 70);
+('fleet.machine_log', 'fleet', 'fleet.machines_hours', 'fleet_machine_log', 'Machine log', 'Machine logs', 'log', 'location', null, false, true, 'vehicle_id', null, true, 'clock', 'Daily log for JCBs, rollers, pavers: hours worked, idle, fuel, operator.', null, null, 71);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3422,10 +3475,10 @@ select audit.track('public.purchase_indent_lines');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('purchase.indent', 'purchase', 'purchase.indent', 'purchase_indent', 'Indent', 'Indents', 'transaction', 'location', 'IN/{LOC}/{FY}/{SEQ:5}', true, true, null, null, true, 'clipboard', 'Request from a site, plant or bunk. Central buying groups approved indents into POs.', null, null, 71);
+('purchase.indent', 'purchase', 'purchase.indent', 'purchase_indent', 'Indent', 'Indents', 'transaction', 'location', 'IN/{LOC}/{FY}/{SEQ:5}', true, true, null, null, true, 'clipboard', 'Request from a site, plant or bunk. Central buying groups approved indents into POs.', null, null, 72);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('purchase.indent.lines', 'purchase', 'purchase.indent', 'purchase_indent_lines', 'purchase.indent', 'lines', 'Items', 'Items', 'child', 'location', 72);
+('purchase.indent.lines', 'purchase', 'purchase.indent', 'purchase_indent_lines', 'purchase.indent', 'lines', 'Items', 'Items', 'child', 'location', 73);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3516,10 +3569,10 @@ create trigger erp_rollup before insert or update on public.purchase_po for each
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('purchase.po', 'purchase', 'purchase.po', 'purchase_po', 'Purchase order', 'Purchase orders', 'transaction', 'location', 'PO/{LOC}/{FY}/{SEQ:5}', true, true, 'doc_no', 'grand_total', false, null, 'Every line shows the last rates paid across all group companies.', null, null, 73);
+('purchase.po', 'purchase', 'purchase.po', 'purchase_po', 'Purchase order', 'Purchase orders', 'transaction', 'location', 'PO/{LOC}/{FY}/{SEQ:5}', true, true, 'doc_no', 'grand_total', false, null, 'Every line shows the last rates paid across all group companies.', null, null, 74);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('purchase.po.lines', 'purchase', 'purchase.po', 'purchase_po_lines', 'purchase.po', 'lines', 'Items', 'Items', 'child', 'location', 74);
+('purchase.po.lines', 'purchase', 'purchase.po', 'purchase_po_lines', 'purchase.po', 'lines', 'Items', 'Items', 'child', 'location', 75);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3611,10 +3664,10 @@ create trigger erp_rollup before insert or update on public.purchase_grn for eac
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('purchase.grn', 'purchase', 'purchase.grn', 'purchase_grn', 'Goods receipt', 'Goods receipts', 'transaction', 'location', 'GR/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', null, true, 'package-check', 'What actually arrived. Weighbridge net fills the qty for bulk materials. Stock goes up here.', '[{"child":"lines","item":"item_id","qty":"accepted_qty","dir":"in","rate":"rate"}]'::jsonb, null, 75);
+('purchase.grn', 'purchase', 'purchase.grn', 'purchase_grn', 'Goods receipt', 'Goods receipts', 'transaction', 'location', 'GR/{LOC}/{FY}/{SEQ:5}', false, true, 'doc_no', null, true, 'package-check', 'What actually arrived. Weighbridge net fills the qty for bulk materials. Stock goes up here.', '[{"child":"lines","item":"item_id","qty":"accepted_qty","dir":"in","rate":"rate"}]'::jsonb, null, 76);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('purchase.grn.lines', 'purchase', 'purchase.grn', 'purchase_grn_lines', 'purchase.grn', 'lines', 'Items', 'Items', 'child', 'location', 76);
+('purchase.grn.lines', 'purchase', 'purchase.grn', 'purchase_grn_lines', 'purchase.grn', 'lines', 'Items', 'Items', 'child', 'location', 77);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3689,10 +3742,10 @@ select audit.track('public.purchase_transfer_lines');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('purchase.transfer', 'purchase', 'purchase.stock.transfers', 'purchase_transfer', 'Stock transfer', 'Stock transfers', 'transaction', 'location', 'ST/{LOC}/{FY}/{SEQ:5}', true, true, null, null, true, 'arrow-left-right', 'Move stock between locations. Between group companies it becomes a sale and a purchase automatically.', '[{"child":"lines","item":"item_id","qty":"qty","dir":"out","rate":"rate","when":"approved"},{"child":"lines","item":"item_id","qty":"qty","dir":"in","rate":"rate","when":"approved","location":"to_location_id"}]'::jsonb, null, 77);
+('purchase.transfer', 'purchase', 'purchase.stock.transfers', 'purchase_transfer', 'Stock transfer', 'Stock transfers', 'transaction', 'location', 'ST/{LOC}/{FY}/{SEQ:5}', true, true, null, null, true, 'arrow-left-right', 'Move stock between locations. Between group companies it becomes a sale and a purchase automatically.', '[{"child":"lines","item":"item_id","qty":"qty","dir":"out","rate":"rate","when":"approved"},{"child":"lines","item":"item_id","qty":"qty","dir":"in","rate":"rate","when":"approved","location":"to_location_id"}]'::jsonb, null, 78);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('purchase.transfer.lines', 'purchase', 'purchase.stock.transfers', 'purchase_transfer_lines', 'purchase.transfer', 'lines', 'Items', 'Items', 'child', 'location', 78);
+('purchase.transfer.lines', 'purchase', 'purchase.stock.transfers', 'purchase_transfer_lines', 'purchase.transfer', 'lines', 'Items', 'Items', 'child', 'location', 79);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3752,10 +3805,10 @@ select audit.track('public.purchase_issue_lines');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('purchase.issue', 'purchase', 'purchase.stock', 'purchase_issue', 'Material issue', 'Material issues', 'transaction', 'location', 'MI/{LOC}/{FY}/{SEQ:5}', false, true, null, null, true, 'package-minus', 'Store issues material to a BOQ item, vehicle or machine.', '[{"child":"lines","item":"item_id","qty":"qty","dir":"out"}]'::jsonb, null, 79);
+('purchase.issue', 'purchase', 'purchase.stock', 'purchase_issue', 'Material issue', 'Material issues', 'transaction', 'location', 'MI/{LOC}/{FY}/{SEQ:5}', false, true, null, null, true, 'package-minus', 'Store issues material to a BOQ item, vehicle or machine.', '[{"child":"lines","item":"item_id","qty":"qty","dir":"out"}]'::jsonb, null, 80);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('purchase.issue.lines', 'purchase', 'purchase.stock', 'purchase_issue_lines', 'purchase.issue', 'lines', 'Items', 'Items', 'child', 'location', 80);
+('purchase.issue.lines', 'purchase', 'purchase.stock', 'purchase_issue_lines', 'purchase.issue', 'lines', 'Items', 'Items', 'child', 'location', 81);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3813,10 +3866,10 @@ select audit.track('public.purchase_stock_count_lines');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('purchase.stock_count', 'purchase', 'purchase.stock.blind_count', 'purchase_stock_count', 'Stock count', 'Stock counts', 'transaction', 'location', 'SC/{LOC}/{FY}/{SEQ:4}', true, true, null, null, true, 'list-checks', 'Blind count: the counter does not see system stock. Differences post on approval.', '[{"child":"lines","item":"item_id","qty":"difference","dir":"adjust","when":"approved"}]'::jsonb, null, 81);
+('purchase.stock_count', 'purchase', 'purchase.stock.blind_count', 'purchase_stock_count', 'Stock count', 'Stock counts', 'transaction', 'location', 'SC/{LOC}/{FY}/{SEQ:4}', true, true, null, null, true, 'list-checks', 'Blind count: the counter does not see system stock. Differences post on approval.', '[{"child":"lines","item":"item_id","qty":"difference","dir":"adjust","when":"approved"}]'::jsonb, null, 82);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('purchase.stock_count.lines', 'purchase', 'purchase.stock.blind_count', 'purchase_stock_count_lines', 'purchase.stock_count', 'lines', 'Counted', 'Counted', 'child', 'location', 82);
+('purchase.stock_count.lines', 'purchase', 'purchase.stock.blind_count', 'purchase_stock_count_lines', 'purchase.stock_count', 'lines', 'Counted', 'Counted', 'child', 'location', 83);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3857,7 +3910,7 @@ select audit.track('public.purchase_rate_contract');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('purchase.rate_contract', 'purchase', 'purchase.rate_contracts', 'purchase_rate_contract', 'Rate contract', 'Rate contracts', 'master', 'company', 'RC/{FY}/{SEQ:4}', false, true, 'doc_no', null, false, null, null, null, null, 83);
+('purchase.rate_contract', 'purchase', 'purchase.rate_contracts', 'purchase_rate_contract', 'Rate contract', 'Rate contracts', 'master', 'company', 'RC/{FY}/{SEQ:4}', false, true, 'doc_no', null, false, null, null, null, null, 84);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3925,7 +3978,7 @@ select audit.track('public.hr_employee');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('hr.employee', 'hr', 'hr.employees', 'hr_employee', 'Employee', 'Employees', 'master', 'location', null, false, false, 'full_name', null, false, null, null, null, null, 84);
+('hr.employee', 'hr', 'hr.employees', 'hr_employee', 'Employee', 'Employees', 'master', 'location', null, false, false, 'full_name', null, false, null, null, null, null, 85);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -3998,7 +4051,7 @@ select audit.track('public.hr_attendance');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('hr.attendance', 'hr', 'hr.attendance', 'hr_attendance', 'Attendance', 'Attendances', 'log', 'location', null, false, true, 'employee_id', null, true, 'fingerprint', null, null, null, 85);
+('hr.attendance', 'hr', 'hr.attendance', 'hr_attendance', 'Attendance', 'Attendances', 'log', 'location', null, false, true, 'employee_id', null, true, 'fingerprint', null, null, null, 86);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -4048,7 +4101,7 @@ select audit.track('public.hr_leave');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('hr.leave', 'hr', 'hr.leave', 'hr_leave', 'Leave request', 'Leave requests', 'transaction', 'location', null, true, true, 'employee_id', null, true, 'calendar-off', null, null, null, 86);
+('hr.leave', 'hr', 'hr.leave', 'hr_leave', 'Leave request', 'Leave requests', 'transaction', 'location', null, true, true, 'employee_id', null, true, 'calendar-off', null, null, null, 87);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -4097,7 +4150,7 @@ select audit.track('public.hr_advance');
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('hr.advance', 'hr', 'hr.advances_upi', 'hr_advance', 'Salary advance', 'Salary advances', 'transaction', 'location', 'ADV/{LOC}/{SEQ:5}', true, true, null, 'amount', true, 'hand-coins', 'Requested on the phone, approved, paid by UPI, recovered from salary automatically.', null, '{"voucher":"payment","lines":[{"side":"Dr","ledger":"STAFF_ADVANCES","amount":"amount"},{"side":"Cr","ledger":"BANK","amount":"amount"}]}'::jsonb, 87);
+('hr.advance', 'hr', 'hr.advances_upi', 'hr_advance', 'Salary advance', 'Salary advances', 'transaction', 'location', 'ADV/{LOC}/{SEQ:5}', true, true, null, 'amount', true, 'hand-coins', 'Requested on the phone, approved, paid by UPI, recovered from salary automatically.', null, '{"voucher":"payment","lines":[{"side":"Dr","ledger":"STAFF_ADVANCES","amount":"amount"},{"side":"Cr","ledger":"BANK","amount":"amount"}]}'::jsonb, 88);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -4194,10 +4247,10 @@ create trigger erp_rollup before insert or update on public.hr_payroll_run for e
 
 insert into public.erp_entity (key, module, feature_key, table_name, label, label_plural, kind, scope, numbering, workflow,
   dated, title_field, amount_field, mobile, icon, description, stock_rules, posting, sort) values
-('hr.payroll_run', 'hr', 'hr.payroll', 'hr_payroll_run', 'Payroll run', 'Payroll runs', 'transaction', 'location', 'PR/{LOC}/{FY}/{SEQ:3}', true, true, 'month', 'net_pay', false, null, 'Monthly salary for a location: attendance, OT, incentives from operations, PF/ESI/PT/TDS, advance recovery.', null, '{"voucher":"payroll","lines":[{"side":"Dr","ledger":"SALARIES","amount":"gross"},{"side":"Dr","ledger":"EMPLOYER_PF_ESI","amount":"pf_employer"},{"side":"Dr","ledger":"EMPLOYER_PF_ESI","amount":"esi_employer"},{"side":"Cr","ledger":"PF_PAYABLE","amount":"pf_employee"},{"side":"Cr","ledger":"PF_PAYABLE","amount":"pf_employer"},{"side":"Cr","ledger":"ESI_PAYABLE","amount":"esi_employee"},{"side":"Cr","ledger":"ESI_PAYABLE","amount":"esi_employer"},{"side":"Cr","ledger":"PT_PAYABLE","amount":"pt"},{"side":"Cr","ledger":"TDS_PAYABLE","amount":"tds"},{"side":"Cr","ledger":"STAFF_ADVANCES","amount":"advance_recovery"},{"side":"Cr","ledger":"SALARY_PAYABLE","amount":"net_pay"}]}'::jsonb, 88);
+('hr.payroll_run', 'hr', 'hr.payroll', 'hr_payroll_run', 'Payroll run', 'Payroll runs', 'transaction', 'location', 'PR/{LOC}/{FY}/{SEQ:3}', true, true, 'month', 'net_pay', false, null, 'Monthly salary for a location: attendance, OT, incentives from operations, PF/ESI/PT/TDS, advance recovery.', null, '{"voucher":"payroll","lines":[{"side":"Dr","ledger":"SALARIES","amount":"gross"},{"side":"Dr","ledger":"EMPLOYER_PF_ESI","amount":"pf_employer"},{"side":"Dr","ledger":"EMPLOYER_PF_ESI","amount":"esi_employer"},{"side":"Cr","ledger":"PF_PAYABLE","amount":"pf_employee"},{"side":"Cr","ledger":"PF_PAYABLE","amount":"pf_employer"},{"side":"Cr","ledger":"ESI_PAYABLE","amount":"esi_employee"},{"side":"Cr","ledger":"ESI_PAYABLE","amount":"esi_employer"},{"side":"Cr","ledger":"PT_PAYABLE","amount":"pt"},{"side":"Cr","ledger":"TDS_PAYABLE","amount":"tds"},{"side":"Cr","ledger":"STAFF_ADVANCES","amount":"advance_recovery"},{"side":"Cr","ledger":"SALARY_PAYABLE","amount":"net_pay"}]}'::jsonb, 89);
 
 insert into public.erp_entity (key, module, feature_key, table_name, parent_key, child_name, label, label_plural, kind, scope, sort) values
-('hr.payroll_run.lines', 'hr', 'hr.payroll', 'hr_payroll_run_lines', 'hr.payroll_run', 'lines', 'Employees', 'Employees', 'child', 'location', 89);
+('hr.payroll_run.lines', 'hr', 'hr.payroll', 'hr_payroll_run_lines', 'hr.payroll_run', 'lines', 'Employees', 'Employees', 'child', 'location', 90);
 
 insert into public.erp_field (entity_key, name, label, type, required, options, ref, computed, sensitive,
   quick, in_list, unit, help, section, default_value, sort) values
@@ -4231,6 +4284,9 @@ insert into public.erp_field (entity_key, name, label, type, required, options, 
 ('hr.payroll_run.lines', 'anomalies', 'Checks', 'json', false, null, null, true, null, false, false, null, null, null, null, 16);
 
 -- references between tables
+alter table public.core_document add foreign key (location_ref_id) references public.location;
+alter table public.core_document add foreign key (vehicle_id) references public.vehicle;
+alter table public.core_document add foreign key (party_id) references public.party;
 alter table public.finance_journal add foreign key (counterparty_company_id) references public.company;
 alter table public.finance_journal_lines add foreign key (ledger_id) references public.finance_ledger;
 alter table public.finance_journal_lines add foreign key (party_id) references public.party;

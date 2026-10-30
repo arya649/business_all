@@ -1,5 +1,116 @@
 [
  {
+  "key": "core.document",
+  "feature": "core.documents.register",
+  "label": "Licence / document",
+  "plural": "Licences & documents",
+  "kind": "master",
+  "scope": "company",
+  "title": "title",
+  "mobile": false,
+  "icon": "file-check",
+  "description": "Every licence, certificate, tender, work order and drawing, with expiry reminders.",
+  "fields": [
+   {
+    "name": "category",
+    "label": "Type",
+    "type": "select",
+    "options": [
+     "peso_licence",
+     "weights_measures",
+     "pollution_consent",
+     "factory_licence",
+     "labour_licence",
+     "trade_licence",
+     "fire_noc",
+     "gst_certificate",
+     "msme",
+     "calibration",
+     "insurance",
+     "tender",
+     "work_order",
+     "drawing",
+     "agreement",
+     "bank_guarantee",
+     "other"
+    ],
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text",
+    "required": true,
+    "list": true
+   },
+   {
+    "name": "doc_number",
+    "label": "Number",
+    "type": "text",
+    "list": true
+   },
+   {
+    "name": "issued_by",
+    "label": "Issued by",
+    "type": "text"
+   },
+   {
+    "name": "issued_on",
+    "label": "Issued on",
+    "type": "date"
+   },
+   {
+    "name": "expires_on",
+    "label": "Valid till",
+    "type": "date",
+    "list": true
+   },
+   {
+    "name": "remind_days",
+    "label": "Remind before (days)",
+    "type": "int",
+    "default": "30"
+   },
+   {
+    "name": "location_ref_id",
+    "label": "For location",
+    "type": "ref",
+    "ref": "location"
+   },
+   {
+    "name": "vehicle_id",
+    "label": "For vehicle",
+    "type": "ref",
+    "ref": "vehicle"
+   },
+   {
+    "name": "party_id",
+    "label": "With party",
+    "type": "ref",
+    "ref": "party"
+   },
+   {
+    "name": "amount",
+    "label": "Amount / fee",
+    "type": "money"
+   },
+   {
+    "name": "files",
+    "label": "Scans / photos",
+    "type": "photos"
+   },
+   {
+    "name": "notes",
+    "label": "Notes",
+    "type": "longtext"
+   }
+  ],
+  "module": "core",
+  "table": "core_document",
+  "children": []
+ },
+ {
   "key": "finance.ledger",
   "feature": "finance.ledger",
   "label": "Ledger",

@@ -466,4 +466,87 @@ reset role;
 select t.ok((select actor_type || '|' || on_behalf_of::text || '|' || correlation_id from audit.log where action = 'ai.tool_call' order by id desc limit 1)
             = 'ai_agent|41000000-0000-0000-0000-00000000000a|zadk-test-1', 'AI read is in the audit log as AI, for the owner, with the Zentrix id');
 
+-- ===========================================================================
+\echo '== Reports, GST files, period lock, owner summary'
+-- ===========================================================================
+select t.login('41000000-0000-0000-0000-00000000000a');
+select t.ok((select amount from profit_and_loss('21000000-0000-0000-0000-000000000002', current_date - 30, current_date) where section = 'Net profit')
+            = (select coalesce(sum(credit - debit), 0) from trial_balance('21000000-0000-0000-0000-000000000002') where ledger_group in ('sales','direct_income','indirect_income','purchases','direct_expenses','indirect_expenses')),
+            'P&L net profit equals income minus expenses in the trial balance');
+select t.ok((select round(sum(case when side = 'Assets' then amount else -amount end), 2) from balance_sheet('21000000-0000-0000-0000-000000000002')) = 0,
+            'balance sheet balances (assets = liabilities + profit)');
+select t.ok((select total from ageing('21000000-0000-0000-0000-000000000002') where party_id = '61000000-0000-0000-0000-000000000001') = 9050
+            and (select d0_30 from ageing('21000000-0000-0000-0000-000000000002') where party_id = '61000000-0000-0000-0000-000000000001') = 9050,
+            'ageing: Sai Builders owes the bunk ₹9,050, all under 30 days');
+select t.ok((select balance from party_statement('21000000-0000-0000-0000-000000000002', '61000000-0000-0000-0000-000000000001') order by doc_date desc nulls last, doc_no desc nulls last limit 1) = 9050,
+            'party statement ends at the same balance');
+select t.ok((select sales from bunk_dsr('21000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000002', current_date - 1)) = 995,
+            'DSR: yesterday''s HSD sales 995 L');
+select t.ok((select book_closing from bunk_dsr('21000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000002', current_date - 1)) = 11255,
+            'DSR: book closing matches the next morning''s book stock');
+select erp_save('finance.sales_invoice', jsonb_build_object('company_id', '21000000-0000-0000-0000-000000000001', 'location_id', '31000000-0000-0000-0000-000000000001',
+  'party_id', '61000000-0000-0000-0000-000000000001', 'place_of_supply', '37', 'vehicle_no', 'AP16TX4521',
+  'lines', jsonb_build_array(jsonb_build_object('item_id', '71000000-0000-0000-0000-000000000001', 'qty', 100, 'uom', 'BAG', 'rate', 380, 'gst_rate', 18)))) ->> 'id' as einv \gset
+select t.ok((einvoice_json(:'einv') #>> '{ValDtls,TotInvVal}')::numeric = 44840 and (einvoice_json(:'einv') #>> '{ValDtls,CgstVal}')::numeric = 3420
+            and einvoice_json(:'einv') #>> '{ItemList,0,Unit}' = 'BAG', 'e-invoice JSON: totals, CGST/SGST split, unit code');
+select t.ok(einvoice_json(:'einv') -> '_missing' ? 'customer GSTIN (B2B e-invoice needs it)', 'e-invoice lists what is missing before upload');
+select t.ok((ewaybill_json(:'einv') #>> '{billLists,0,vehicleNo}') = 'AP16TX4521', 'e-way bill JSON carries the vehicle');
+select erp_set_status('finance.sales_invoice', :'einv'::uuid, 'submit');
+select t.ok(jsonb_array_length(gstr1_json('22000000-0000-0000-0000-000000000001', to_char(current_date, 'YYYY-MM')) -> 'b2cs') >= 1,
+            'GSTR-1: invoice to a customer without GSTIN goes to B2C small');
+insert into period_lock (company_id, tenant_id, locked_upto) values ('21000000-0000-0000-0000-000000000002', '11000000-0000-0000-0000-000000000001', current_date - 1);
+reset role;
+select set_config('t.tank', (select id::text from bunk_tank where tenant_id = '11000000-0000-0000-0000-000000000001' limit 1), false);
+select t.login('41000000-0000-0000-0000-00000000000b');
+do $$ begin
+  perform erp_save('bunk.dip', jsonb_build_object('company_id', '21000000-0000-0000-0000-000000000002', 'location_id', '31000000-0000-0000-0000-000000000002',
+    'doc_date', current_date - 3, 'tank_id', current_setting('t.tank'), 'dip_mm', 1000));
+  raise exception 'FAIL: entry in a locked period';
+exception when others then perform t.ok(sqlerrm like 'Entries up to % are locked%', 'cashier cannot enter a dip in a locked (filed) period');
+end $$;
+reset role;
+select t.login('41000000-0000-0000-0000-00000000000a');
+select t.ok(owner_summary_text(current_date - 1) like '*Lakshmi Group%Sales:%', 'owner''s WhatsApp summary is ready to send');
+reset role;
+
+-- ===========================================================================
+\echo '== Bank matching, Tally export, documents, devices'
+-- ===========================================================================
+select t.login('41000000-0000-0000-0000-00000000000a');
+select erp_save('finance.ledger', jsonb_build_object('company_id', '21000000-0000-0000-0000-000000000001', 'name', 'SBI Current A/c', 'code', 'BANK_SBI',
+  'ledger_group', 'bank', 'nature', 'asset', 'is_bank', true)) ->> 'id' as bank \gset
+select erp_save('finance.receipt', jsonb_build_object('company_id', '21000000-0000-0000-0000-000000000001', 'location_id', '31000000-0000-0000-0000-000000000001',
+  'party_id', '61000000-0000-0000-0000-000000000001', 'amount', 50000, 'mode', 'neft_rtgs', 'reference_no', 'UTR555123', 'bank_ledger_id', :'bank'));
+select t.ok((bank_import('21000000-0000-0000-0000-000000000001', :'bank', jsonb_build_array(
+  jsonb_build_object('date', current_date, 'narration', 'NEFT-UTR555123-SAI BUILDERS', 'credit', 50000),
+  jsonb_build_object('date', current_date, 'narration', 'BANK CHARGES', 'debit', 118))) ->> 'matched')::int = 1,
+  'bank statement imported; the NEFT credit matches the receipt by amount and UTR');
+select t.ok((bank_import('21000000-0000-0000-0000-000000000001', :'bank', jsonb_build_array(
+  jsonb_build_object('date', current_date, 'narration', 'BANK CHARGES', 'debit', 118))) ->> 'duplicates')::int = 1, 'importing the same line twice is skipped');
+select t.ok(tally_export('21000000-0000-0000-0000-000000000001', current_date - 60, current_date) like '%<VOUCHER VCHTYPE=%<LEDGERNAME>Sai Builders</LEDGERNAME>%',
+            'Tally XML has vouchers with the party as ledger');
+select erp_save('core.document', jsonb_build_object('company_id', '21000000-0000-0000-0000-000000000002', 'category', 'peso_licence',
+  'title', 'PESO storage licence NH16 bunk', 'doc_number', 'P/HQ/AP/15/1234', 'expires_on', current_date + 10));
+select t.ok(exists (select 1 from leakage_board('21000000-0000-0000-0000-000000000002') where kind = 'licence_expiry'), 'leakage board warns about the PESO licence expiring');
+select device_register('21000000-0000-0000-0000-000000000001', '31000000-0000-0000-0000-000000000001', 'weighbridge', 'Plant weighbridge') as dev \gset
+select device_register('21000000-0000-0000-0000-000000000001', null, 'gps', 'GPS feed') as gps \gset
+reset role;
+select set_config('role', 'anon', false);
+select t.ok(device_ingest(:'dev'::jsonb ->> 'serial', :'dev'::jsonb ->> 'key', '{"weight_kg": 14300, "stable_seconds": 4, "vehicle_no": "AP16 TX 4521"}') ->> 'weighment' = 'first',
+            'scale sends a stable weight: first weighment ticket created');
+select t.ok(device_ingest(:'dev'::jsonb ->> 'serial', :'dev'::jsonb ->> 'key', '{"weight_kg": 21300, "stable_seconds": 5, "vehicle_no": "AP16TX4521"}') ->> 'weighment' = 'second',
+            'same truck again: second weighment on the same ticket');
+do $$ begin
+  perform device_ingest('weighbridge-x', 'wrong', '{}');
+  raise exception 'FAIL: unknown device accepted';
+exception when insufficient_privilege then perform t.ok(true, 'a device with a wrong key is refused');
+end $$;
+select device_ingest(:'gps'::jsonb ->> 'serial', :'gps'::jsonb ->> 'key', '{"vehicle_no": "AP16TX4521", "lat": 16.5, "lng": 80.6, "speed_kmph": 0, "fuel_l": 180}');
+select t.ok(device_ingest(:'gps'::jsonb ->> 'serial', :'gps'::jsonb ->> 'key', '{"vehicle_no": "AP16TX4521", "lat": 16.5, "lng": 80.6, "speed_kmph": 0, "fuel_l": 150}') ->> 'alert' = 'fuel_drop',
+            'GPS: 30 L gone while parked raises a fuel-drop alert');
+reset role;
+select t.ok((select net_kg from weighbridge_ticket where vehicle_no = 'AP16TX4521' and second_mode = 'scale' order by created_at desc limit 1) = 7000
+            and (select actor_type from audit.log where table_name = 'public.weighbridge_ticket' order by id desc limit 1) = 'hardware',
+            'ticket net 7,000 kg, recorded in the audit log as the scale');
+
 \echo '== all module tests passed'

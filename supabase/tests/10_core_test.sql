@@ -3,7 +3,7 @@
 \set QUIET 1
 
 create schema t;
-grant usage on schema t to authenticated;
+grant usage on schema t to authenticated, anon;
 
 create function t.login(p_user uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, false);
@@ -16,7 +16,7 @@ begin
   if p_cond is not true then raise exception 'FAIL: %', p_msg; end if;
   raise notice 'ok - %', p_msg;
 end $$;
-grant execute on function t.ok(boolean, text) to authenticated;
+grant execute on function t.ok(boolean, text) to authenticated, anon;
 
 -- ---------------------------------------------------------------------------
 -- Fixture (as superuser)

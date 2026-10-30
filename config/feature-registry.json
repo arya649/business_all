@@ -10,7 +10,8 @@
       "owner_daily_summary": { "config": { "times": ["08:00", "20:00"] } }
     },
     "dashboard": { "owner": {}, "leakage_board": {}, "unbilled_tracker": {} },
-    "documents": { "expiry_calendar": {}, "ocr_search": {}, "camera_only_photos": {} },
+    "documents": { "register": {}, "expiry_calendar": {}, "ocr_search": {}, "camera_only_photos": {} },
+    "devices": { "weighbridge_scale": {}, "biometric": {}, "gps": {} },
     "offline": { "config": { "number_block_size": 50, "max_unsynced_hours_alert": 24 } },
     "languages": { "config": { "enabled": ["en", "te", "hi", "ta", "kn"] } }
   },
